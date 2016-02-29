@@ -1,0 +1,62 @@
+--- agent.c	2016-02-29 05:19:23.694217535 +0000
++++ agent_custom.c	2016-02-29 05:54:37.815864958 +0000
+@@ -349,6 +349,33 @@
+ 	return 0;
+ }
+ 
++static size_t decode_hex(const char *pin, char *out)
++{
++	size_t i;
++
++	for (i = 0; i < 16 && pin[i * 2] && pin[i * 2 + 1]; i++)
++		sscanf(&pin[i * 2], "%02hhX", &out[i]);
++
++	return i;
++}
++
++static size_t decode_pin(const char *pin, char *out)
++{
++	size_t len;
++
++	if (!pin)
++		return 0;
++
++	if (pin[0] == '$') {
++		len = decode_hex(&pin[1], out);
++	} else {
++		len = strnlen(pin, 16);
++		memcpy(out, pin, len);
++	}
++
++	return len;
++}
++
+ static void pincode_reply(DBusPendingCall *call, void *user_data)
+ {
+ 	struct agent_request *req = user_data;
+@@ -360,6 +387,7 @@
+ 	bdaddr_t sba;
+ 	size_t len;
+ 	char *pin;
++	char rawpin[16];
+ 
+ 	adapter_get_address(adapter, &sba);
+ 
+@@ -386,7 +414,7 @@
+ 		goto done;
+ 	}
+ 
+-	len = strlen(pin);
++	len = decode_pin(pin, rawpin);
+ 
+ 	if (len > 16 || len < 1) {
+ 		error("Invalid PIN length (%zu) from agent", len);
+@@ -397,7 +425,7 @@
+ 		goto done;
+ 	}
+ 
+-	cb(agent, NULL, pin, req->user_data);
++	cb(agent, NULL, rawpin, req->user_data);
+ 
+ done:
+ 	if (message)
