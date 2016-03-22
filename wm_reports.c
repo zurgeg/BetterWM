@@ -90,11 +90,11 @@ void report_format_mem_resp(struct report * rpt, int size, int error, uint16_t a
 {
   struct report_mem_resp * resp = (struct report_mem_resp *)rpt->data.buf;
 
-  rpt->len = 22;
+  rpt->len = 23;
   rpt->data.io = 0xa1;
   rpt->data.type = 0x21;
 
-  resp->size = size;
+  resp->size = size-1;
   resp->error = error;
   resp->addr = htons(addr);
   if (buf != NULL) //buf will be null for error reports
@@ -426,7 +426,7 @@ void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_
   {
     int i;
     //if crypto problems arise, try encrypting all the bytes
-    //only the 6 containing data are done to save time
+    //only the 6 containing data are done now
     for (i=0;i<6;i++)
     {
       //buf[i] = (buf[i] - ft[(0x08 + i)%8]) ^ sb[(0x08 + i)%8];

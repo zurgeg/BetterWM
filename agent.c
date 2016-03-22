@@ -486,7 +486,6 @@ int remove_paired_linkkey()
 	dbus_message_unref(msg);
 
 	if (!reply) {
-		printf("cant find\n");
 		fprintf(stderr, "Can't find device\n");
 		if (dbus_error_is_set(&err)) {
 			fprintf(stderr, "%s\n", err.message);
@@ -521,7 +520,6 @@ int remove_paired_linkkey()
 	dbus_message_unref(msg);
 
 	if (!reply) {
-		printf("cant find\n");
 		fprintf(stderr, "Can't remove device\n");
 		if (dbus_error_is_set(&err)) {
 			fprintf(stderr, "%s\n", err.message);
@@ -595,6 +593,8 @@ void * agent_run(void * arg)
 
 	if (!__io_terminated)
 		unregister_agent(conn, adapter_path, agent_path);
+
+	printf("Agent unregistered");
 
 	free(adapter_path);
 	free(agent_path);

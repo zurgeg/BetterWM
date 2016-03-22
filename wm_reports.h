@@ -1,10 +1,12 @@
-//Portability note: most likely needs modification to use on big endian systems
+//Portability note: may need modifcation for different targets (endianness, etc.)
 
 #ifndef WM_REPORTS_H
 #define WM_REPORTS_H
 
 #include "wiimote.h"
 #include <stdint.h>
+
+#define OFFSET24(offset32) ((offset32)<<8)
 
 struct report_data
 {
@@ -60,18 +62,22 @@ struct report_ir_basic
 {
   uint8_t x1_lo;
   uint8_t y1_lo;
+
   int x2_hi:2;
   int y2_hi:2;
   int x1_hi:2;
   int y1_hi:2;
+
   uint8_t x2_lo;
   uint8_t y2_lo;
   uint8_t x3_lo;
   uint8_t y3_lo;
-  int x4_hi:2;
-  int y4_hi:2;
+
   int x3_hi:2;
   int y3_hi:2;
+  int x4_hi:2;
+  int y4_hi:2;
+
   uint8_t x4_lo;
   uint8_t y4_lo;
 } __attribute__((packed));
@@ -80,9 +86,10 @@ struct report_ir_ext_obj
 {
   uint8_t x_lo;
   uint8_t y_lo;
-  int y_hi:2;
-  int x_hi:2;
+
   int size:4;
+  int x_hi:2;
+  int y_hi:2;
 } __attribute__((packed));
 
 struct report_ir_ext
@@ -94,13 +101,20 @@ struct report_ir_full_obj
 {
   uint8_t x_lo;
   uint8_t y_lo;
-  int y_hi:2;
-  int x_hi:2;
+
   int size:4;
-  int unused0:1; int x_min:7;
-  int unused1:1; int y_min:7;
-  int unused2:1; int x_max:7;
-  int unused3:1; int y_max:7;
+  int x_hi:2;
+  int y_hi:2;
+
+  int x_min:7;
+  int unused0:1;
+  int y_min:7;
+  int unused1:1;
+  int x_max:7;
+  int unused2:1;
+  int y_max:7;
+  int unused3:1;
+
   uint8_t unused4;
   uint8_t intensity;
 } __attribute__((packed));
@@ -122,11 +136,11 @@ struct report_ext_nunchuck
   uint8_t accel_y_hi;
   uint8_t accel_z_hi;
 
-  int accel_z_lo:2;
-  int accel_y_lo:2;
-  int accel_x_lo:2;
-  int c:1;
   int z:1;
+  int c:1;
+  int accel_x_lo:2;
+  int accel_y_lo:2;
+  int accel_z_lo:2;
 } __attribute__((packed));
 
 struct report_ext_nunchuck_pt
@@ -140,76 +154,82 @@ struct report_ext_nunchuck_pt
   int accel_z_hi:7;
   int ext:1;
 
-  int accel_z_lo:2;
-  int accel_y_lo:1;
-  int accel_x_lo:1;
-  int c:1;
-  int z:1;
   int unused:2;
+  int z:1;
+  int c:1;
+  int accel_x_lo:1;
+  int accel_y_lo:1;
+  int accel_z_lo:2;
 } __attribute__((packed));
 
 struct report_ext_classic
 {
-  int rx_hi:2;
   int lx:6;
-  int rx_m:2;
+  int rx_hi:2;
+
   int ly:6;
-  int rx_lo:1;
-  int lt_hi:2;
+  int rx_m:2;
+
   int ry:5;
-  int lt_lo:3;
+  int lt_hi:2;
+  int rx_lo:1;
+
   int rt:5;
+  int lt_lo:3;
 
-  int right:1;
-  int down:1;
-  int ltrigger:1;
-  int minus:1;
-  int home:1;
-  int plus:1;
-  int rtrigger:1;
   int unused:1;
+  int rtrigger:1;
+  int plus:1;
+  int home:1;
+  int minus:1;
+  int ltrigger:1;
+  int down:1;
+  int right:1;
 
-  int lz:1;
-  int b:1;
-  int y:1;
-  int a:1;
-  int x:1;
-  int rz:1;
-  int left:1;
   int up:1;
+  int left:1;
+  int rz:1;
+  int x:1;
+  int a:1;
+  int y:1;
+  int b:1;
+  int lz:1;
 } __attribute__((packed));
 
 struct report_ext_classic_pt
 {
   //different format if in passthrough mode with motionplus
-  int rx_hi:2;
-  int lx:5;
   int up:1;
-  int rx_m:2;
-  int ly:5;
+  int lx:5;
+  int rx_hi:2;
+
   int left:1;
-  int rx_lo:1;
-  int lt_hi:2;
+  int ly:5;
+  int rx_m:2;
+
   int ry:5;
+  int lt_hi:2;
+  int rx_lo:1;
+
   int lt_lo:3;
   int rt:5;
 
-  int right:1;
-  int down:1;
-  int ltrigger:1;
-  int minus:1;
-  int home:1;
-  int plus:1;
-  int rtrigger:1;
   int ext:1;
+  int rtrigger:1;
+  int plus:1;
+  int home:1;
+  int minus:1;
+  int ltrigger:1;
+  int down:1;
+  int right:1;
 
-  int lz:1;
-  int b:1;
-  int y:1;
-  int a:1;
-  int x:1;
-  int rz:1;
   int unused:2;
+  int rz:1;
+  int x:1;
+  int a:1;
+  int y:1;
+  int b:1;
+  int lz:1;
 } __attribute__((packed));
 
 struct report_ext_motionplus
@@ -218,17 +238,17 @@ struct report_ext_motionplus
   uint8_t roll_lo;
   uint8_t pitch_lo;
 
-  int yaw_hi:6;
-  int yaw_slow:1;
   int pitch_slow:1;
+  int yaw_slow:1;
+  int yaw_hi:6;
 
-  int roll_hi:6;
-  int roll_slow:1;
   int ext:1;
+  int roll_slow:1;
+  int roll_hi:6;
 
-  int pitch_hi:6;
-  int unused_0:1;
   int unused_1:1;
+  int unused_0:1;
+  int pitch_hi:6;
 } __attribute__((packed));
 
 struct report_status
@@ -254,8 +274,8 @@ struct report_mem_resp
 {
   struct report_buttons buttons;
 
-  int size:4;
   int error:4;
+  int size:4;
 
   uint16_t addr;  //big endian
 
@@ -274,53 +294,53 @@ struct report_ack
 
 struct report_rumble
 {
-  int unused:7;
   int rumble:1;
+  int unused:7;
 } __attribute__((packed));
 
 struct report_leds
 {
+  int rumble:1;
+  int unused:3;
+  int led_1:1;
+  int led_2:1;
   int led_4:1;
   int led_3:1;
-  int led_2:1;
-  int led_1:1;
-  int unused:3;
-  int rumble:1;
 } __attribute__((packed));
 
 struct report_mode
 {
-  int unused0:5;
-  int continuous:1;
-  int unused1:1;
   int rumble:1;
+  int unused1:1;
+  int continuous:1;
+  int unused0:5;
 
   uint8_t mode;
 } __attribute__((packed));
 
 struct report_ir_enable
 {
-  int unused0:5;
-  int enabled:1;
-  int unused1:1;
   int rumble:1;
+  int unused1:1;
+  int enabled:1;
+  int unused0:5;
 } __attribute__((packed));
 
 struct report_speaker_enable
 {
-  int unused0:5;
-  int muted:1;
-  int unused1:1;
   int rumble:1;
+  int unused1:1;
+  int muted:1;
+  int unused0:5;
 } __attribute__((packed));
 
 struct report_mem_read
 {
-  int unused0:4;
+  int rumble:1;
+  int unused1:1;
   int source0:1;
   int source1:1;
-  int unused1:1;
-  int rumble:1;
+  int unused0:4;
 
   uint32_t offset:24; //big endian
   uint16_t size;      //big endian
@@ -328,11 +348,11 @@ struct report_mem_read
 
 struct report_mem_write
 {
-  int unused0:4;
+  int rumble:1;
+  int unused1:1;
   int source0:1;
   int source1:1;
-  int unused1:1;
-  int rumble:1;
+  int unused0:4;
 
   uint32_t offset:24; //big endian
   uint8_t size;

@@ -191,7 +191,6 @@ void generate_tables()
   uint8_t t0[10];
   uint8_t i;
 
-  /*
   printf("correct key: %02x %02x %02x %02x %02x %02x\n",
   register_a4[0x4f],
   register_a4[0x4e],
@@ -200,7 +199,6 @@ void generate_tables()
   register_a4[0x4b],
   register_a4[0x4a]
   );
-  */
 
   //determine idx with simple brute force
   for(idx=0;idx<7;idx++)

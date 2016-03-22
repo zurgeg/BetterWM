@@ -14,7 +14,7 @@
 #include <poll.h>
 #include <pthread.h>
 
-#include "agent.h"
+//#include "agent.h"
 #include "wiimote.h"
 #include "input.h"
 
@@ -33,33 +33,48 @@ void sig_handler(int sig)
 }
 
 //agent
-pthread_t agentthread;
-int agent_status = 0;
-int agent_done = 0;
-int remove_linkkey = 0;
-char agentcommand[14];
-char devcommand[48];
+// pthread_t agentthread;
+// int agent_status = 0;
+// int agent_done = 0;
+// int remove_linkkey = 0;
+// char * agentcommand; //[14];
 
-int l2connect(const char *bdaddr, int psm)
+int createsocket()
 {
   int fd;
-  struct sockaddr_l2 addr;
   struct linger l = { .l_onoff = 1, .l_linger = 5 };
   int opt = 0;
 
-  if ( (fd = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 )
+  fd = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP);
+  if (fd < 0)
+  {
     return -1;
+  }
 
   if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &l, sizeof(l)) < 0)
   {
     close(fd);
-    return -2;
+    return -1;
   }
 
   if (setsockopt(fd, SOL_L2CAP, L2CAP_LM, &opt, sizeof(opt)) < 0)
   {
     close(fd);
-    return -3;
+    return -1;
+  }
+
+  return fd;
+}
+
+int l2connect(const char *bdaddr, int psm)
+{
+  int fd;
+  struct sockaddr_l2 addr;
+
+  fd = createsocket();
+  if (fd < 0)
+  {
+    return -1;
   }
 
   memset(&addr, 0, sizeof(addr));
@@ -67,81 +82,109 @@ int l2connect(const char *bdaddr, int psm)
   addr.l2_psm    = htobs(psm);
   str2ba(bdaddr, &addr.l2_bdaddr);
 
-  if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+  if ( connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0 )
   {
     close(fd);
-    return -4;
+    return -1;
   }
 
   return fd;
 }
 
-void connecttowii(int retries)
+int l2accept(int psm)
 {
-  //implement retries in case of a failure or two
+  int fd, wiifd;
+  struct sockaddr_l2 addr, wiiaddr;
+  socklen_t opt = sizeof(wiiaddr);
+  char buf[18];
 
-  int tries = 0;
-
-  if (agent_status == 0)
+  fd = createsocket();
+  if (fd < 0)
   {
-    if ( pthread_create(&agentthread, NULL, agent_run, (void *)NULL) )
-    {
-      printf("agent thread creation failed\n");
-      exit(1);
-    }
-
-    while(!agent_status)
-    {
-      usleep(50*1000);
-      tries++;
-      if (tries > 200)
-    {
-        printf("agent timeout\n");
-        exit(1);
-      }
-    }
-    printf("agent started.\n");
-
+    return -1;
   }
 
-  tries = 0;
-  remove_linkkey = 1;
-  agent_status = 2;
-  while(agent_status != 1)
-  {
-      usleep(50*1000);
-      tries++;
-      if (tries > 200)
-      {
-          printf("key timeout\n");
-          exit(1);
-      }
-  }
-  printf("key removed.\n");
+  memset(&addr, 0, sizeof(addr));
+  addr.l2_family = AF_BLUETOOTH;
+  addr.l2_psm = htobs(psm);
+  addr.l2_bdaddr = *BDADDR_ANY;
 
-  /* Connect to Wii */
+  if ( bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0 )
+  {
+    close(fd);
+    return -1;
+  }
+
+  if ( listen(fd, 1) < 0 )
+  {
+    close(fd);
+    return -1;
+  }
+
+  wiifd = accept(fd, (struct sockaddr *)&wiiaddr, &opt);
+  ba2str( &wiiaddr.l2_bdaddr, buf );
+  printf("accepted connection from %s.\n", buf);
+
+  close(fd);
+
+  return wiifd;
+}
+
+void waitforwii()
+{
+
+  printf("waiting for connection on psm %d...\n", CTRL);
+  ctrl = l2accept(CTRL);
+
+  if ( ctrl < 0 )
+  {
+    printf("can't connect to psm %d\n", CTRL);
+    running = 0;
+    return;
+  }
+
+  printf("waiting for connection on psm %d...\n", DATA);
+  data = l2accept(DATA);
+
+  if (data < 0)
+  {
+    printf("can't connection to psm %d\n", DATA);
+    running = 0;
+    return;
+  }
+
+  printf("connected.\n");
+}
+
+
+void connecttowii()
+{
 
   printf("connecting to %s psm %d\n", bdaddr, CTRL);
-  if ( (ctrl = l2connect(bdaddr, CTRL)) < 0 )
+  ctrl = l2connect(bdaddr, CTRL);
+
+  if (ctrl < 0)
   {
-    printf("can't connect to %s psm %d", bdaddr, CTRL);
-    exit(1);
+    printf("can't connect to %s psm %d\n", bdaddr, CTRL);
+    running = 0;
+    return;
   }
 
   printf("connecting to %s psm %d\n", bdaddr, DATA);
-  if ( (data = l2connect(bdaddr, DATA)) < 0 )
+  data = l2connect(bdaddr, DATA);
+
+  if (data < 0)
   {
-    shutdown(ctrl, SHUT_RDWR);
-    close(ctrl);
-    printf("can't connect to %s psm %d", bdaddr, DATA);
-    exit(1);
+    printf("can't connect to %s psm %d\n", bdaddr, DATA);
+    running = 0;
+    return;
   }
 
   printf("connected.\n");
 
 }
 
-void disconnectfromwii()
+void disconnect()
 {
   shutdown(ctrl, SHUT_RDWR);
   shutdown(data, SHUT_RDWR);
@@ -164,21 +207,20 @@ int main(int argc, char *argv[])
   int send_report_now = 0;
   int failure = 0;
 
+  if (argc > 1)
+  {
+    bdaddr = argv[1];
+
+    if (bachk(bdaddr) < 0)
+    {
+      printf("usage: %s <wii-bdaddr>\n", *argv);
+      return 1;
+    }
+  }
+
   //set up unload signals
   signal(SIGINT, sig_handler);
   signal(SIGHUP, sig_handler);
-
-  //check args
-  if (argc >= 1)
-  {
-    bdaddr = argv[1];
-  }
-
-  if (bachk(bdaddr) == -1)
-  {
-    printf("usage: %s <wii-bdaddr>\n", *argv);
-    return 1;
-  }
 
   input_init();
 
@@ -200,6 +242,8 @@ int main(int argc, char *argv[])
   free(tempbdaddr);
   */
 
+
+  /*
   agentcommand[0] = '$';
   sscanf(bdaddr, "%2c:%2c:%2c:%2c:%2c:%2c",
     &agentcommand[11],
@@ -210,12 +254,17 @@ int main(int argc, char *argv[])
     &agentcommand[1]
   );
   agentcommand[13] = 0;
+  */
 
-  strcpy(devcommand, "./test-device remove ");
-  strcat(devcommand, bdaddr);
+  if (bdaddr == NULL)
+  {
+    waitforwii();
+  }
+  else
+  {
+    connecttowii();
+  }
 
-  //connect
-  connecttowii(0);
 
   while (running)
   {
@@ -235,25 +284,25 @@ int main(int argc, char *argv[])
     pfd[1].events = POLLIN | POLLERR;
 
     // Check data PSM for output if it's time to send a report
-    if (send_report_now)
+    if (1 || send_report_now)
     {
       pfd[1].events |= POLLOUT;
     }
 
     if (poll(pfd, 2, 0) < 0)
     {
-      printf("ppoll");
+      printf("ppoll\n");
       break;
     }
 
     if (pfd[0].revents & POLLERR)
     {
-      printf("error on ctrl psm");
+      printf("error on ctrl psm\n");
       break;
     }
     if (pfd[1].revents & POLLERR)
     {
-      printf("error on data psm");
+      printf("error on data psm\n");
       break;
     }
 
@@ -264,17 +313,12 @@ int main(int argc, char *argv[])
 
       if (len > 0)
       {
-        if (process_report(&state, buf, len) == -1)
-        {
-          printf("error processing data");
-          break;
-
-        }
+        process_report(&state, buf, len);
       }
     }
 
     //send report
-    if (send_report_now)
+    if (1 || send_report_now)
     {
       //process input
       input_update(&state);
@@ -282,10 +326,7 @@ int main(int argc, char *argv[])
       if (pfd[1].revents & POLLOUT)
       {
         len = generate_report(&state, buf);
-        if (send(data, buf, len, MSG_DONTWAIT) == -1)
-        {
-          printf("send error");
-        }
+        send(data, buf, len, MSG_DONTWAIT);
         send_report_now = 0;
 
         //report_time = SDL_GetTicks() + 20;
@@ -297,30 +338,30 @@ int main(int argc, char *argv[])
         failure += 1;
         if (failure >= 4)
         {
-          disconnectfromwii();
+          disconnect();
           destroy_wiimote(&state);
           init_wiimote(&state);
-          connecttowii(2);
+          connecttowii();
         }
         send_report_now = 0;
 
-        //report_time = SDL_GetTicks() + 250;
+        usleep(200*1000);
       }
 
       /* Schedule next report in 20000us = 20ms*/
 
     }
 
-    usleep(10*1000);
+    usleep(20*1000);
 
   }
 
   printf("cleaning up...\n");
 
-  agent_done = 1;
-  pthread_join(agentthread, NULL);
+  //agent_done = 1;
+  //pthread_join(agentthread, NULL);
 
-  disconnectfromwii();
+  disconnect();
 
   destroy_wiimote(&state);
 

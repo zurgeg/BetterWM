@@ -1,8 +1,8 @@
---- agent.c	2016-02-29 05:19:23.694217535 +0000
-+++ agent_custom.c	2016-02-29 05:54:37.815864958 +0000
-@@ -349,6 +349,33 @@
- 	return 0;
- }
+--- event.c	2016-03-19 17:11:02.150681137 -0500
++++ event_patched.c	2016-03-19 17:24:14.314647823 -0500
+@@ -86,24 +86,53 @@
+  *
+  *****************************************************************/
  
 +static size_t decode_hex(const char *pin, char *out)
 +{
@@ -31,32 +31,29 @@
 +	return len;
 +}
 +
- static void pincode_reply(DBusPendingCall *call, void *user_data)
+ static void pincode_cb(struct agent *agent, DBusError *derr,
+ 				const char *pincode, struct btd_device *device)
  {
- 	struct agent_request *req = user_data;
-@@ -360,6 +387,7 @@
- 	bdaddr_t sba;
- 	size_t len;
- 	char *pin;
+ 	struct btd_adapter *adapter = device_get_adapter(device);
+ 	bdaddr_t dba;
+ 	int err;
++	size_t len;
 +	char rawpin[16];
  
- 	adapter_get_address(adapter, &sba);
+ 	device_get_address(device, &dba, NULL);
  
-@@ -386,7 +414,7 @@
- 		goto done;
+-	if (derr) {
++	len = decode_pin(pincode, rawpin);
++	if (derr || !len) {
+ 		err = btd_adapter_pincode_reply(adapter, &dba, NULL, 0);
+ 		if (err < 0)
+ 			goto fail;
+ 		return;
  	}
  
--	len = strlen(pin);
-+	len = decode_pin(pin, rawpin);
+-	err = btd_adapter_pincode_reply(adapter, &dba, pincode,
+-						pincode ? strlen(pincode) : 0);
++	err = btd_adapter_pincode_reply(adapter, &dba, rawpin, len);
+ 	if (err < 0)
+ 		goto fail;
  
- 	if (len > 16 || len < 1) {
- 		error("Invalid PIN length (%zu) from agent", len);
-@@ -397,7 +425,7 @@
- 		goto done;
- 	}
- 
--	cb(agent, NULL, pin, req->user_data);
-+	cb(agent, NULL, rawpin, req->user_data);
- 
- done:
- 	if (message)

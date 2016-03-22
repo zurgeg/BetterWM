@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define EXT_NUNCHUCK 0x1
+#define EXT_CLASSIC 0x2
+
 struct wiimote_ir_object
 {
   uint16_t x;
