@@ -14,7 +14,6 @@
 #include <poll.h>
 #include <pthread.h>
 
-//#include "agent.h"
 #include "wiimote.h"
 #include "input.h"
 
@@ -31,13 +30,6 @@ void sig_handler(int sig)
 {
   running = 0;
 }
-
-//agent
-// pthread_t agentthread;
-// int agent_status = 0;
-// int agent_done = 0;
-// int remove_linkkey = 0;
-// char * agentcommand; //[14];
 
 int createsocket()
 {
@@ -226,36 +218,6 @@ int main(int argc, char *argv[])
 
   init_wiimote(&state);
 
-  //agent, system strings
-  /*
-  char *tempbdaddr = malloc(18 * sizeof(char));
-  memset(tempbdaddr, 0, 18 * sizeof(char));
-  agentcommand = malloc(14 * sizeof(char));
-  sscanf(bdaddr, "%2c:%2c:%2c:%2c:%2c:%2c", &tempbdaddr[0], &tempbdaddr[3], &tempbdaddr[6], &tempbdaddr[9], &tempbdaddr[12], &tempbdaddr[15]);
-  strcpy(agentcommand, "$");
-  strcat(agentcommand, tempbdaddr + 15);
-  strcat(agentcommand, tempbdaddr + 12);
-  strcat(agentcommand, tempbdaddr + 9);
-  strcat(agentcommand, tempbdaddr + 6);
-  strcat(agentcommand, tempbdaddr + 3);
-  strcat(agentcommand, tempbdaddr);
-  free(tempbdaddr);
-  */
-
-
-  /*
-  agentcommand[0] = '$';
-  sscanf(bdaddr, "%2c:%2c:%2c:%2c:%2c:%2c",
-    &agentcommand[11],
-    &agentcommand[9],
-    &agentcommand[7],
-    &agentcommand[5],
-    &agentcommand[3],
-    &agentcommand[1]
-  );
-  agentcommand[13] = 0;
-  */
-
   if (bdaddr == NULL)
   {
     waitforwii();
@@ -268,10 +230,6 @@ int main(int argc, char *argv[])
 
   while (running)
   {
-    // if (SDL_GetTicks() >= report_time)
-    // {
-    //   send_report_now = 1;
-    // }
 
     memset(&pfd, 0, sizeof(pfd));
 
@@ -329,7 +287,6 @@ int main(int argc, char *argv[])
         send(data, buf, len, MSG_DONTWAIT);
         send_report_now = 0;
 
-        //report_time = SDL_GetTicks() + 20;
         failure = 0;
       }
       else
@@ -357,9 +314,6 @@ int main(int argc, char *argv[])
   }
 
   printf("cleaning up...\n");
-
-  //agent_done = 1;
-  //pthread_join(agentthread, NULL);
 
   disconnect();
 
