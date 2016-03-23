@@ -2,6 +2,8 @@
 
 Emulates a Bluetooth Wii controller in software.
 
+![Raspberry Pi 3 running the emulator in Raspbian](rpi_ss.png)
+
 ## Why?
 
   - Useful for building portable console mods with internal controllers
@@ -24,10 +26,10 @@ Additionally, bluez-4.101 is required (newer versions currently don't work).
 
 To build the emulator, run the makefile in the source directory. In order to
 connect to the Wii, a plugin must be installed that allows pairing using non
-UTF-8 pin codes. Copy the bluez-plugin folder to the bluez-4.101/plugins
-folder of the bluez source and run the makefile in that directory. Copy the
-output wmemu.so file to the bluez installation's plugins directory
-(e.g. /usr/lib/bluetooth/plugins) and restart the bluetooth service.
+UTF-8 pin codes. Copy the contents of the bluez-plugin folder to the
+bluez-4.101/plugins folder of the Bluez source and run the makefile in that
+directory. Copy the output wmemu.so file to the Bluez installation's plugins
+directory (e.g. /usr/lib/bluetooth/plugins) and restart the bluetooth service.
 
 TODO: Friendlier directions for different distros/targets, prebuilt binaries
 
