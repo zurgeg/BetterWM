@@ -130,7 +130,7 @@ void waitforwii()
 
   if ( ctrl < 0 )
   {
-    printf("can't connect to psm %d\n", CTRL);
+    printf("can't connect to psm %d: %s\n", CTRL, strerror(errno));
     running = 0;
     return;
   }
@@ -140,7 +140,7 @@ void waitforwii()
 
   if (data < 0)
   {
-    printf("can't connection to psm %d\n", DATA);
+    printf("can't connect to psm %d: %s\n", DATA, strerror(errno));
     running = 0;
     return;
   }
@@ -157,7 +157,7 @@ void connecttowii()
 
   if (ctrl < 0)
   {
-    printf("can't connect to %s psm %d\n", bdaddr, CTRL);
+    printf("can't connect to %s psm %d: %s\n", bdaddr, CTRL, strerror(errno));
     running = 0;
     return;
   }
@@ -167,7 +167,7 @@ void connecttowii()
 
   if (data < 0)
   {
-    printf("can't connect to %s psm %d\n", bdaddr, DATA);
+    printf("can't connect to %s psm %d: %s\n", bdaddr, DATA, strerror(errno));
     running = 0;
     return;
   }
