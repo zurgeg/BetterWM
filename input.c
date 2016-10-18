@@ -22,6 +22,32 @@ void input_init()
         exit(1);
     }
     SDL_SetVideoMode(128, 128, 0, 0);
+    printf( "Commands overview\n"
+            "-----------------\n"
+            "                 __ arrows use keypad numbers!\n"
+            "     ........  L'\n"
+            "    |   .    |\\           ,.._\n"
+            "    |   8    | |        ,'    \\\\\n"
+            "    | -4 6-  | |        |   ^  |\\\n"
+            "    |   2    | |        | <-|->/ |q\n"
+            "    |   '    | |\\       `   v '  |\n"
+            "    |  /-\\   | |b|      |     | _/e\n"
+            "    |  |a|   |  \\|      |     //\n"
+            "    |  \\-/   |   |      |    |/\n"
+            "    |        |   |      |    |\n"
+            "    | 3 h 4  |   |       \\   /\n"
+            "    |        |   |        --'\n"
+            "    |        |   |        _...______________,...\n"
+            "    |   2    |   |      ,'                      `-\n"
+            "    |        |   |     /   ^      3 h 4       q   `.\n"
+            "    |   1    |  /      | <-|->             e    a  |\n"
+            "    |        |-/       \\   v                 b     /\n"
+            "    '`'''''''           \\                        ,'\n"
+            "     _     _             `-..-'------------`...-'\n"
+            "   ,'       `.\n"
+            "  ,' t     y '.     0: toggles arrow keys between\n"
+            "  V           V        IR/nunchuck/classic/motion plus\n"
+            "                    ESC: quit\n\n");
 }
 
 void input_unload()
