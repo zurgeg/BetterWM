@@ -15,37 +15,37 @@ bool shift;
 
 void input_init()
 {
-  //init SDL
-  if (SDL_Init(0) < 0)
-  {
-    printf("Could not initialize SDL: %s\n", SDL_GetError());
-    exit(1);
-  }
-  SDL_SetVideoMode(128, 128, 0, 0);
+    //init SDL
+    if (SDL_Init(0) < 0)
+    {
+        printf("Could not initialize SDL: %s\n", SDL_GetError());
+        exit(1);
+    }
+    SDL_SetVideoMode(128, 128, 0, 0);
 }
 
 void input_unload()
 {
-  SDL_Quit();
+    SDL_Quit();
 }
 
 void input_update(struct wiimote_state * state)
 {
-  SDL_Event event;
+    SDL_Event event;
 
-  /* Loop through waiting messages and process them */
+    /* Loop through waiting messages and process them */
 
-  while (SDL_PollEvent(&event))
-  {
-    switch (event.type)
+    while (SDL_PollEvent(&event))
     {
-
-      case SDL_KEYDOWN:
-        switch (event.key.keysym.sym)
+        switch (event.type)
         {
-          case SDLK_ESCAPE:
-            exit(0);
-              break;
+
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym)
+                {
+                    case SDLK_ESCAPE:
+                        exit(0);
+                        break;
 
                     case SDLK_0:
                         if (togglekey0 == 0)
@@ -55,17 +55,17 @@ void input_update(struct wiimote_state * state)
                             printf("arrows (IR, nunchuck, classic, wmp): %d \n", arrow_function);
                             if (arrow_function != 0)
                             {
-                                  ir_object_clear(state, 0);
-                                  ir_object_clear(state, 1);
-                                  ir_object_clear(state, 2);
-                                  ir_object_clear(state, 3);
+                                ir_object_clear(state, 0);
+                                ir_object_clear(state, 1);
+                                ir_object_clear(state, 2);
+                                ir_object_clear(state, 3);
                             } else {
-                                  state->usr.ir_object[0].x = 400;
-                                  state->usr.ir_object[0].y = 400;
-                                  state->usr.ir_object[0].size = 8;
-                                  state->usr.ir_object[1].x = 600;
-                                  state->usr.ir_object[1].y = 400;
-                                  state->usr.ir_object[1].size = 8;
+                                state->usr.ir_object[0].x = 400;
+                                state->usr.ir_object[0].y = 400;
+                                state->usr.ir_object[0].size = 8;
+                                state->usr.ir_object[1].x = 600;
+                                state->usr.ir_object[1].y = 400;
+                                state->usr.ir_object[1].size = 8;
                             }
                         }
                         break;
@@ -79,35 +79,35 @@ void input_update(struct wiimote_state * state)
                     case SDLK_LSHIFT:
                         shift = 1; break;
                     case SDLK_a:
-                      state->usr.a = 1;
+                        state->usr.a = 1;
                         //state->usr.classic.a = 1;
                         break;
                     case SDLK_d:
-                      state->usr.b = 1;
+                        state->usr.b = 1;
                         //state->usr.classic.b = 1;
                         break;
                     case SDLK_q:
-                      state->usr.nunchuck.c = 1;
-                      state->usr.classic.x = 1;
+                        state->usr.nunchuck.c = 1;
+                        state->usr.classic.x = 1;
                         break;
                     case SDLK_e:
-                      state->usr.nunchuck.z = 1;
-                      state->usr.classic.y = 1;
+                        state->usr.nunchuck.z = 1;
+                        state->usr.classic.y = 1;
                         break;
                     case SDLK_1:
-                      state->usr.one = 1;
+                        state->usr.one = 1;
                         break;
                     case SDLK_2:
-                      state->usr.two = 1;
+                        state->usr.two = 1;
                         break;
                     case SDLK_3:
-                      state->usr.minus = 1;
+                        state->usr.minus = 1;
                         break;
                     case SDLK_4:
-                      state->usr.plus = 1;
+                        state->usr.plus = 1;
                         break;
                     case SDLK_h:
-                      state->usr.home = 1;
+                        state->usr.home = 1;
                         break;
                     case SDLK_KP8:
                         state->usr.up = 1;
@@ -121,21 +121,21 @@ void input_update(struct wiimote_state * state)
                     case SDLK_KP6:
                         state->usr.right = 1;
                         break;
-          case SDLK_UP:
+                    case SDLK_UP:
                         up = 1;
-            break;
+                        break;
 
-          case SDLK_DOWN:
+                    case SDLK_DOWN:
                         down = 1;
-            break;
+                        break;
 
-          case SDLK_LEFT:
+                    case SDLK_LEFT:
                         left = 1;
-            break;
+                        break;
 
-          case SDLK_RIGHT:
+                    case SDLK_RIGHT:
                         right = 1;
-            break;
+                        break;
 
                     case SDLK_t:
                         steerleft = 1;
@@ -146,7 +146,7 @@ void input_update(struct wiimote_state * state)
                     default:
                         break;
                 }
-          break;
+                break;
 
             case SDL_KEYUP:
                 switch (event.key.keysym.sym)
@@ -160,35 +160,35 @@ void input_update(struct wiimote_state * state)
                     case SDLK_LSHIFT:
                         shift = 0; break;
                     case SDLK_a:
-                      state->usr.a = 0;
+                        state->usr.a = 0;
                         state->usr.classic.a = 0;
                         break;
                     case SDLK_d:
-                      state->usr.b = 0;
+                        state->usr.b = 0;
                         state->usr.classic.b = 0;
                         break;
                     case SDLK_q:
-                      state->usr.nunchuck.c = 0;
+                        state->usr.nunchuck.c = 0;
                         state->usr.classic.x = 0;
                         break;
                     case SDLK_e:
-                      state->usr.nunchuck.z = 0;
-                      state->usr.classic.y = 0;
+                        state->usr.nunchuck.z = 0;
+                        state->usr.classic.y = 0;
                         break;
                     case SDLK_1:
-                      state->usr.one = 0;
+                        state->usr.one = 0;
                         break;
                     case SDLK_2:
-                      state->usr.two = 0;
+                        state->usr.two = 0;
                         break;
                     case SDLK_3:
-                      state->usr.minus = 0;
+                        state->usr.minus = 0;
                         break;
                     case SDLK_4:
-                      state->usr.plus = 0;
+                        state->usr.plus = 0;
                         break;
                     case SDLK_h:
-                      state->usr.home = 0;
+                        state->usr.home = 0;
                         break;
                     case SDLK_KP8:
                         state->usr.up = 0;
@@ -204,19 +204,19 @@ void input_update(struct wiimote_state * state)
                         break;
                     case SDLK_UP:
                         up = 0;
-            break;
+                        break;
 
-          case SDLK_DOWN:
+                    case SDLK_DOWN:
                         down = 0;
-            break;
+                        break;
 
-          case SDLK_LEFT:
+                    case SDLK_LEFT:
                         left = 0;
-            break;
+                        break;
 
-          case SDLK_RIGHT:
+                    case SDLK_RIGHT:
                         right = 0;
-            break;
+                        break;
 
                     case SDLK_t:
                         steerleft = 0;
@@ -224,11 +224,11 @@ void input_update(struct wiimote_state * state)
                     case SDLK_y:
                         steerright = 0;
                         break;
-          default:
-              break;
+                    default:
+                        break;
                 }
+        }
     }
-  }
 
     if ((steerleft && steerright) || (!steerleft && !steerright))
     {
@@ -243,23 +243,23 @@ void input_update(struct wiimote_state * state)
 
     /*
 
-    if (steerleft)
-    {
-        if (steerang < (7 * PI / 8))
-            steerang += 0.02;
-        state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
-        state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
-    }
+       if (steerleft)
+       {
+       if (steerang < (7 * PI / 8))
+       steerang += 0.02;
+       state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
+       state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
+       }
 
-    if (steerright)
-    {
-        if (steerang > (1 * PI / 8))
-            steerang -= 0.02;
-        state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
-        state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
-    }
+       if (steerright)
+       {
+       if (steerang > (1 * PI / 8))
+       steerang -= 0.02;
+       state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
+       state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
+       }
 
-    */
+*/
 
     //state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
     //state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
@@ -269,40 +269,40 @@ void input_update(struct wiimote_state * state)
         case 0:
             if (down)
             {
-                 if (state->usr.ir_object[0].y < 764)
-               {
-                  state->usr.ir_object[0].y += 4;
-                  state->usr.ir_object[1].y += 4;
-               }
+                if (state->usr.ir_object[0].y < 764)
+                {
+                    state->usr.ir_object[0].y += 4;
+                    state->usr.ir_object[1].y += 4;
+                }
             }
 
             if (up)
             {
-                 if (state->usr.ir_object[0].x > 3)
-             {
-                state->usr.ir_object[0].y -= 4;
-                state->usr.ir_object[1].y -= 4;
-             }
+                if (state->usr.ir_object[0].x > 3)
+                {
+                    state->usr.ir_object[0].y -= 4;
+                    state->usr.ir_object[1].y -= 4;
+                }
 
             }
 
             if (left)
             {
-                 if (state->usr.ir_object[0].x < 1020)
-             {
-                 state->usr.ir_object[0].x += 4;
-                 state->usr.ir_object[1].x += 4;
-             }
+                if (state->usr.ir_object[0].x < 1020)
+                {
+                    state->usr.ir_object[0].x += 4;
+                    state->usr.ir_object[1].x += 4;
+                }
 
             }
 
             if (right)
             {
-                 if (state->usr.ir_object[0].x > 3)
-                 {
+                if (state->usr.ir_object[0].x > 3)
+                {
                     state->usr.ir_object[0].x -= 4;
                     state->usr.ir_object[1].x -= 4;
-               }
+                }
             }
             break;
         case 1:
