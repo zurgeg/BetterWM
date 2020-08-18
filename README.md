@@ -55,6 +55,8 @@ Finding a Wii's address is a bit trickier. There are multiple ways to do this
 as well, including using a Bluetooth packet sniffer or using a utility via
 custom firmware on the Wii. Below is a quicker (although messier) way.
 
+#### Battery method (quicker but messier)
+
   - change your Bluetooth address to the Wiimote's (you'll need to do this anyway)
 
         > sudo ./bdaddr <wiimote address (from part 1)>
@@ -75,6 +77,10 @@ custom firmware on the Wii. Below is a quicker (although messier) way.
     revealing its address
   - this may take few tries -- note that you must press both sync buttons again
     each time
+
+#### Homebrew method (more setup but reliable)
+
+If you have installed the Homebrew Channel on your console or are willing to do so, then you can use [identify-mii](https://github.com/ThatsJustCheesy/identify-mii) to display your console's address on the screen.
 
 ### Step 3: Run the Emulator
 
