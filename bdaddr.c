@@ -21,9 +21,6 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 #include <stdio.h>
 #include <errno.h>
@@ -33,10 +30,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/hci_lib.h>
-
+#include "bdaddr.h"
 #include "oui.h"
 
 static int transient = 0;
@@ -319,161 +313,49 @@ static struct {
 	{ 65535,	NULL,			NULL			},
 };
 
-static void usage(void)
+int set_device_bdaddr(int dd, const struct hci_version * ver, const bdaddr_t * bdaddr)
 {
-	printf("bdaddr - Utility for changing the Bluetooth device address\n\n");
-	printf("Usage:\n"
-		"\tbdaddr [-i <dev>] [-r] [-t] [new bdaddr]\n");
-}
+	if (ver == NULL)
+	{
+		return -1;
+	}
 
-static struct option main_options[] = {
-	{ "device",	1, 0, 'i' },
-	{ "reset",	0, 0, 'r' },
-	{ "transient",	0, 0, 't' },
-	{ "help",	0, 0, 'h' },
-	{ 0, 0, 0, 0 }
-};
+	if (!bacmp(bdaddr, BDADDR_ANY))
+	{
+		return -1;
+	}
 
-int main(int argc, char *argv[])
-{
-	struct hci_dev_info di;
-	struct hci_version ver;
-	bdaddr_t bdaddr;
-	char addr[18], *comp;
-	int i, dd, opt, dev = 0, reset = 0;
-
-	bacpy(&bdaddr, BDADDR_ANY);
-
-	while ((opt=getopt_long(argc, argv, "+i:rth", main_options, NULL)) != -1) {
-		switch (opt) {
-		case 'i':
-			dev = hci_devid(optarg);
-			if (dev < 0) {
-				perror("Invalid device");
-				exit(1);
+	for (int i = 0; vendor[i].compid != 65535; i++)
+	{
+		if (ver->manufacturer == vendor[i].compid)
+		{
+			if (!vendor[i].reset_device)
+			{
+				fprintf(stderr, "Can't automatically reset device\n");
+				return -1;
 			}
-			break;
 
-		case 'r':
-			reset = 1;
-			break;
-
-		case 't':
-			transient = 1;
-			break;
-
-		case 'h':
-		default:
-			usage();
-			exit(0);
-		}
-	}
-
-	argc -= optind;
-	argv += optind;
-	optind = 0;
-
-	dd = hci_open_dev(dev);
-	if (dd < 0) {
-		fprintf(stderr, "Can't open device hci%d: %s (%d)\n",
-						dev, strerror(errno), errno);
-		exit(1);
-	}
-
-	if (hci_devinfo(dev, &di) < 0) {
-		fprintf(stderr, "Can't get device info for hci%d: %s (%d)\n",
-						dev, strerror(errno), errno);
-		hci_close_dev(dd);
-		exit(1);
-	}
-
-	if (hci_read_local_version(dd, &ver, 1000) < 0) {
-		fprintf(stderr, "Can't read version info for hci%d: %s (%d)\n",
-						dev, strerror(errno), errno);
-		hci_close_dev(dd);
-		exit(1);
-	}
-
-	if (!bacmp(&di.bdaddr, BDADDR_ANY)) {
-		if (hci_read_bd_addr(dd, &bdaddr, 1000) < 0) {
-			fprintf(stderr, "Can't read address for hci%d: %s (%d)\n",
-						dev, strerror(errno), errno);
-			hci_close_dev(dd);
-			exit(1);
-		}
-	} else
-		bacpy(&bdaddr, &di.bdaddr);
-
-	printf("Manufacturer:   %s (%d)\n",
-			bt_compidtostr(ver.manufacturer), ver.manufacturer);
-
-	comp = batocomp(&bdaddr);
-
-	ba2str(&bdaddr, addr);
-	printf("Device address: %s", addr);
-
-	if (comp) {
-		printf(" (%s)\n", comp);
-		free(comp);
-	} else
-		printf("\n");
-
-	if (argc < 1) {
-		hci_close_dev(dd);
-		exit(0);
-	}
-
-	str2ba(argv[0], &bdaddr);
-	if (!bacmp(&bdaddr, BDADDR_ANY)) {
-		hci_close_dev(dd);
-		exit(0);
-	}
-
-	for (i = 0; vendor[i].compid != 65535; i++)
-		if (ver.manufacturer == vendor[i].compid) {
-			comp = batocomp(&bdaddr);
-
-			ba2str(&bdaddr, addr);
-			printf("New BD address: %s", addr);
-
-			if (comp) {
-				printf(" (%s)\n\n", comp);
-				free(comp);
-			} else
-				printf("\n\n");
-
-
-			if (vendor[i].write_bd_addr(dd, &bdaddr) < 0) {
+			if (vendor[i].write_bd_addr(dd, (bdaddr_t *)bdaddr) < 0) {
 				fprintf(stderr, "Can't write new address\n");
-				hci_close_dev(dd);
-				exit(1);
+				return -1;
 			}
 
-			printf("Address changed - ");
+			// if (vendor[i].reset_device)
+			// {
+			// 	if (vendor[i].reset_device(dd) < 0)
+			// 	{
+			// 		fprintf(stderr, "Couldn't reset device\n");
+			// 		return -2;
+			// 	}
+			// } else {
+			// 	return -2;
+			// }
 
-			if (reset && vendor[i].reset_device) {
-				if (vendor[i].reset_device(dd) < 0) {
-					printf("Reset device manually\n");
-				} else {
-					ioctl(dd, HCIDEVRESET, dev);
-					printf("Device reset successfully\n");
-				}
-			} else {
-				printf("Reset device now\n");
-			}
-
-			//ioctl(dd, HCIDEVRESET, dev);
-			//ioctl(dd, HCIDEVDOWN, dev);
-			//ioctl(dd, HCIDEVUP, dev);
-
-			hci_close_dev(dd);
-			exit(0);
+			return 0;
 		}
+	}
 
-	hci_close_dev(dd);
-
-	printf("\n");
 	fprintf(stderr, "Unsupported manufacturer\n");
 
-	exit(1);
+	return -1;
 }

@@ -1,8 +1,6 @@
 #include "wm_crypto.h"
 #include "wiimote.h"
 
-#include <stdio.h>
-
 //extension crypto (2602 bytes)
 uint8_t ans_tbl[7][6] = {
   {0xA8,0x77,0xA6,0xE0,0xF7,0x43},
@@ -191,15 +189,6 @@ void generate_tables()
   uint8_t t0[10];
   uint8_t i;
 
-  printf("correct key: %02x %02x %02x %02x %02x %02x\n",
-  register_a4[0x4f],
-  register_a4[0x4e],
-  register_a4[0x4d],
-  register_a4[0x4c],
-  register_a4[0x4b],
-  register_a4[0x4a]
-  );
-
   //determine idx with simple brute force
   for(idx=0;idx<7;idx++)
   {
@@ -210,15 +199,6 @@ void generate_tables()
       t0[i] = sboxes[0][register_a4[0x49 - i]];
     }
 
-    printf("key %d: %02x %02x %02x %02x %02x %02x\n", idx,
-      ((ror8((ans[0]^t0[5]),(t0[2]%8)) - t0[9]) ^ t0[4]) & 0xff,
-      ((ror8((ans[1]^t0[1]),(t0[0]%8)) - t0[5]) ^ t0[7]) & 0xff,
-      ((ror8((ans[2]^t0[6]),(t0[8]%8)) - t0[2]) ^ t0[0]) & 0xff,
-      ((ror8((ans[3]^t0[4]),(t0[7]%8)) - t0[3]) ^ t0[2]) & 0xff,
-      ((ror8((ans[4]^t0[1]),(t0[6]%8)) - t0[3]) ^ t0[4]) & 0xff,
-      ((ror8((ans[5]^t0[7]),(t0[8]%8)) - t0[5]) ^ t0[9]) & 0xff
-    );
-
     //todo: clean up this nasty mess
     if ((register_a4[0x4f] == (uint8_t)((ror8(ans[0]^t0[5],t0[2]%8) - t0[9]) ^ t0[4])) &&
       (register_a4[0x4e] == (uint8_t)((ror8(ans[1]^t0[1],t0[0]%8) - t0[5]) ^ t0[7])) &&
@@ -227,8 +207,7 @@ void generate_tables()
       (register_a4[0x4b] == (uint8_t)((ror8(ans[4]^t0[1],t0[6]%8) - t0[3]) ^ t0[4])) &&
       (register_a4[0x4a] == (uint8_t)((ror8(ans[5]^t0[7],t0[8]%8) - t0[5]) ^ t0[9])))
     {
-            printf("crypto key found %d \n", idx);
-            break;
+      break;
     }
   }
 
@@ -249,5 +228,4 @@ void generate_tables()
   sb[5] = sboxes[idx+1][register_a4[0x4e]] ^ sboxes[idx+2][register_a4[0x41]];
   sb[6] = sboxes[idx+1][register_a4[0x46]] ^ sboxes[idx+2][register_a4[0x44]];
   sb[7] = sboxes[idx+1][register_a4[0x47]] ^ sboxes[idx+2][register_a4[0x43]];
-
 }
