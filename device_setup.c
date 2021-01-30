@@ -15,12 +15,14 @@
 
 static bdaddr_t original_bdaddr;
 static char original_name[HCI_MAX_NAME_LENGTH];
+static uint8_t original_class[3];
 static uint8_t original_scan_enable;
 static uint8_t original_iac[MAX_IAC_LAP][3];
 static uint8_t original_iac_num;
 
 static bdaddr_t wiimote_baddr;
 static const char * wiimote_name = "Nintendo RVL-CNT-01";
+static const uint32_t wiimote_class = 0x002504;
 static const uint8_t wiimote_iac[3] = { 0x00, 0x8B, 0x9E };
 
 //a few nintendo OUIs that can be used (there are many)
@@ -236,6 +238,46 @@ int restore_device_name(int dd)
   return 0;
 }
 
+int set_up_device_class(int dd)
+{
+  int ret;
+
+  ret = hci_read_class_of_dev(dd, original_class, HCI_TIMEOUT);
+  if (ret < 0)
+  {
+    fprintf(stderr, "Can't read device class: %s (%d)\n", strerror(errno), errno);
+    return -1;
+  }
+
+  ret = hci_write_class_of_dev(dd, wiimote_class, HCI_TIMEOUT);
+  if (ret < 0)
+  {
+    fprintf(stderr, "Can't write device class: %s (%d)\n", strerror(errno), errno);
+    return -1;
+  }
+
+  return 0;
+}
+
+int restore_device_class(int dd)
+{
+  int ret;
+
+  uint32_t class_int = 0;
+  class_int |= original_class[0];
+  class_int |= original_class[1] << 8;
+  class_int |= original_class[2] << 16;
+
+  ret = hci_write_class_of_dev(dd, class_int, HCI_TIMEOUT);
+  if (ret < 0)
+  {
+    fprintf(stderr, "Can't restore device class: %s (%d)\n", strerror(errno), errno);
+    return -1;
+  }
+
+  return 0;
+}
+
 int set_up_device_inquiry(int dd)
 {
   int ret;
@@ -320,6 +362,14 @@ int set_up_device(char * dev_str)
     return -1;
   }
 
+  ret = set_up_device_class(dd);
+  if (ret < 0)
+  {
+    printf("Failed to set device class\n");
+    hci_close_dev(dd);
+    return -1;
+  }
+
   ret = set_up_device_inquiry(dd);
   if (ret < 0)
   {
@@ -356,6 +406,14 @@ int restore_device()
   if (ret < 0)
   {
     printf("Failed to restore device name\n");
+    hci_close_dev(dd);
+    return -1;
+  }
+
+  ret = restore_device_class(dd);
+  if (ret < 0)
+  {
+    printf("Failed to restore device class\n");
     hci_close_dev(dd);
     return -1;
   }
