@@ -190,10 +190,6 @@ int connect_to_host()
 
 void disconnect()
 {
-  close(sock_sdp_fd);
-  close(sock_ctrl_fd);
-  close(sock_int_fd);
-
   shutdown(sdp_fd, SHUT_RDWR);
   shutdown(ctrl_fd, SHUT_RDWR);
   shutdown(int_fd, SHUT_RDWR);
@@ -201,6 +197,10 @@ void disconnect()
   close(sdp_fd);
   close(ctrl_fd);
   close(int_fd);
+
+  sdp_fd = 0;
+  ctrl_fd = 0;
+  int_fd = 0;
 }
 
 int main(int argc, char *argv[])
@@ -355,6 +355,7 @@ int main(int argc, char *argv[])
       printf("connected to %s\n", straddr);
 
       is_connected = 1;
+      has_host = 1;
     }
 
     if (pfd[3].revents & POLLIN)
@@ -388,6 +389,8 @@ int main(int argc, char *argv[])
        running = 0;
     }
 
+    if (is_connected && send_report_now)
+    {
       if (pfd[5].revents & POLLOUT)
       {
         len = generate_report(&state, buf);
@@ -398,23 +401,27 @@ int main(int argc, char *argv[])
       }
       else
       {
-        failure += 1;
-        if (failure > 7)
+        if (++failure > 3)
         {
-          printf("failed to reconnect\n");
-          break;
-        }
-        else if (failure > 3)
-        {
-          printf("trying to reconnect...\n");
+          printf("connection timed out, attemping to reconnect...\n");
           disconnect();
-          destroy_wiimote(&state);
-          init_wiimote(&state);
-          connect_to_host();
+          is_connected = 0;
         }
-        // send_report_now = 0;
 
         usleep(200*1000);
+      }
+    }
+
+    if (has_host && !is_connected)
+    {
+      if (connect_to_host() < 0)
+      {
+        usleep(500*1000);
+      }
+      else
+      {
+        printf("connected to host\n");
+        is_connected = 1;
       }
     }
 
@@ -424,6 +431,10 @@ int main(int argc, char *argv[])
   printf("cleaning up...\n");
 
   disconnect();
+
+  close(sock_sdp_fd);
+  close(sock_ctrl_fd);
+  close(sock_int_fd);
 
   restore_device();
 
