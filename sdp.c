@@ -168,7 +168,7 @@ int32_t sdp_get_data(uint8_t * buf)
 
 int remove_existing_sdp_records(sdp_session_t * session)
 {
-
+    return 0;
 }
 
 int register_wiimote_sdp_record()
