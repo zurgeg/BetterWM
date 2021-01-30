@@ -287,18 +287,18 @@ int main(int argc, char *argv[])
     //setting this to zero is not required for every call...
     //... also POLLERR has no effect in the events field
     pfd[0].fd = sock_sdp_fd;
-    pfd[0].events = POLLIN | POLLERR;
+    pfd[0].events = POLLIN;
     pfd[1].fd = sock_ctrl_fd;
-    pfd[1].events = POLLIN | POLLERR;
+    pfd[1].events = POLLIN;
     pfd[2].fd = sock_int_fd;
-    pfd[2].events = POLLIN | POLLERR;
+    pfd[2].events = POLLIN;
 
     pfd[3].fd = sdp_fd;
-    pfd[3].events = POLLIN | POLLERR | POLLOUT;
+    pfd[3].events = POLLIN | POLLOUT;
     pfd[4].fd = ctrl_fd;
-    pfd[4].events = POLLIN | POLLERR;
+    pfd[4].events = POLLIN;
     pfd[5].fd = int_fd;
-    pfd[5].events = POLLIN | POLLERR;
+    pfd[5].events = POLLIN;
 
     // Check data PSM for output if it's time to send a report
     if (is_connected && send_report_now)
