@@ -383,10 +383,10 @@ int main(int argc, char *argv[])
       }
     }
 
-    if (is_connected && send_report_now)
+    if (input_update(&state) == 0)
     {
-      //process input
-      input_update(&state);
+       running = 0;
+    }
 
       if (pfd[5].revents & POLLOUT)
       {

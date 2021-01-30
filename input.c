@@ -55,7 +55,7 @@ void input_unload()
     SDL_Quit();
 }
 
-void input_update(struct wiimote_state * state)
+int input_update(struct wiimote_state * state)
 {
     SDL_Event event;
 
@@ -70,7 +70,7 @@ void input_update(struct wiimote_state * state)
                 switch (event.key.keysym.sym)
                 {
                     case SDLK_ESCAPE:
-                        exit(0);
+                        return 0;
                         break;
 
                     case SDLK_0:
@@ -346,4 +346,6 @@ void input_update(struct wiimote_state * state)
             state->usr.motionplus.yaw_slow = !shift;
             break;
     }
+
+    return 1;
 }
