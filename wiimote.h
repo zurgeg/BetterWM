@@ -95,6 +95,8 @@ struct wiimote_state_usr
   //x, y, size, x min, y min, x max, y max, intensity
   struct wiimote_ir_object ir_object[4];
 
+  uint8_t extension;
+
   struct wiimote_nunchuck nunchuck;
   struct wiimote_classic classic;
   struct wiimote_motionplus motionplus;
@@ -117,9 +119,10 @@ struct wiimote_state_sys
   bool low_battery;
 
   bool extension_connected;
+  uint8_t extension;
+
   bool extension_report;
   bool extension_encrypted;
-  uint8_t extension;
   uint8_t extension_report_type;
   uint8_t wmp_state; //0 inactive, 1 active, 2 deactivated
 

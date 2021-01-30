@@ -108,6 +108,20 @@ int generate_report(struct wiimote_state * state, uint8_t * buf)
   struct report_data * data = (struct report_data *)buf;
   uint8_t * contents;
 
+  if (state->usr.extension != state->sys.extension)
+  {
+    bool extension_connected = (state->usr.extension != 0);
+    if (state->sys.extension_connected && extension_connected)
+    {
+      state->sys.extension_connected = 0;
+      report_queue_push_status(state);
+    }
+    state->sys.extension_connected = extension_connected;
+    state->sys.extension = state->usr.extension;
+    report_queue_push_status(state);
+    init_extension(state);
+  }
+
   if (!state->sys.reporting_continuous && !state->sys.report_changed && state->sys.queue == NULL)
     return 0;
 
@@ -786,18 +800,10 @@ void init_wiimote(struct wiimote_state *state)
   state->usr.motionplus.roll_slow = 1;
   state->usr.motionplus.pitch_slow = 1;
 
-
-  state->sys.extension = EXT_CLASSIC;
-  state->sys.extension_connected = 1;
+  state->sys.extension = 0;
+  state->sys.extension_connected = 0;
   init_extension(state);
-
-
-  if (state->sys.extension != 0)
-  {
-    report_queue_push_status(state);
-  }
 
   //state->sys.reporting_enabled = 0;
   //state->sys.feature_ef_byte_6 = 0xa0;
-
 }
