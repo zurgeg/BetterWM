@@ -15,6 +15,7 @@
 
 static int state = -1;
 static uint32_t sdp_record_handle;
+static const uint32_t wiimote_hid_record_handle = 0x10000;
 
 static const uint8_t resp0[14] = 
 { 0x03, 0x00, 0x00, 0x00, 0x09, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00 };
@@ -165,8 +166,14 @@ int32_t sdp_get_data(uint8_t * buf)
     return len;
 }
 
+int remove_existing_sdp_records(sdp_session_t * session)
+{
+
+}
+
 int register_wiimote_sdp_record()
 {
+    int ret;
     sdp_session_t * session;
     session = sdp_connect(BDADDR_ANY, BDADDR_LOCAL, SDP_RETRY_IF_BUSY);
 
@@ -176,7 +183,15 @@ int register_wiimote_sdp_record()
         return -1;
     }
 
-    int ret = sdp_device_record_register_binary(session, BDADDR_ANY, 
+    ret = sdp_device_record_unregister_binary(session, BDADDR_ANY, wiimote_hid_record_handle);
+    if (ret < 0 && errno != EINVAL)
+    {
+        printf("failed to unregister sdp record %s\n", strerror(errno));
+        sdp_close(session);
+        return -1;
+    }
+
+    ret = sdp_device_record_register_binary(session, BDADDR_ANY, 
       (uint8_t *)attributes, sizeof(attributes), SDP_RECORD_PERSIST, &sdp_record_handle);
     if (ret < 0)
     {
@@ -192,6 +207,7 @@ int register_wiimote_sdp_record()
 
 int unregister_wiimote_sdp_record()
 {
+    int ret;
     sdp_session_t * session;
     session = sdp_connect(BDADDR_ANY, BDADDR_LOCAL, SDP_RETRY_IF_BUSY);
 
@@ -201,7 +217,7 @@ int unregister_wiimote_sdp_record()
         return -1;
     }
 
-    int ret = sdp_device_record_unregister_binary(session, BDADDR_ANY, sdp_record_handle);
+    ret = sdp_device_record_unregister_binary(session, BDADDR_ANY, sdp_record_handle);
     if (ret < 0)
     {
         printf("failed to unregister sdp record %s\n", strerror(errno));
