@@ -16,10 +16,10 @@ make && make install
 
 # build bluez-plugin
 cd ../bluez-plugin
-make
+make clean && make
 cp ./wmemu.so $DIST/lib/bluetooth/plugins
 cd ..
 
 # build emulator
-CUSTOM_BUILD=1
-make
+make clean
+CUSTOM_BUILD=1 make
