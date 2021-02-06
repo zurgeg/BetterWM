@@ -350,8 +350,7 @@ int set_up_device(char * dev_str)
   if (ret < 0)
   {
     printf("Failed to set device address\n");
-    hci_close_dev(dd);
-    return -1;
+    printf("Warning: device address must have a Nintendo OUI\n");
   }
 
   ret = set_up_device_name(dd);
@@ -398,8 +397,6 @@ int restore_device()
   if (ret < 0)
   {
     printf("Failed to restore device address\n");
-    hci_close_dev(dd);
-    return -1;
   }
 
   ret = restore_device_name(dd);
