@@ -31,7 +31,6 @@
 #include <sys/socket.h>
 
 #include "bdaddr.h"
-#include "oui.h"
 
 static int transient = 0;
 

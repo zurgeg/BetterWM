@@ -13,6 +13,7 @@
 
 #define HCI_TIMEOUT 1000
 
+static int bdaddr_was_set = 0;
 static bdaddr_t original_bdaddr;
 static char original_name[HCI_MAX_NAME_LENGTH];
 static uint8_t original_class[3];
@@ -25,12 +26,17 @@ static const char * wiimote_name = "Nintendo RVL-CNT-01";
 static const uint32_t wiimote_class = 0x002504;
 static const uint8_t wiimote_iac[3] = { 0x00, 0x8B, 0x9E };
 
-//a few nintendo OUIs that can be used (there are many)
-static const bdaddr_t nintendo_ouis[3] =
+static const uint32_t nintendo_ouis[66] =
 {
-  { { 0x00, 0x00, 0x00, 0xBF, 0x09, 0x00 } },
-  { { 0x00, 0x00, 0x00, 0x56, 0x16, 0x00 } },
-  { { 0x00, 0x00, 0x00, 0xEA, 0x1B, 0x00 } }
+  0xECC40D, 0xE84ECE, 0xE0F6B5, 0xE0E751, 0xE00C7F, 0xDC68EB, 0xD86BF7, 0xD4F057,
+  0xCCFB65, 0xCC9E00, 0xB8AE6E, 0xB88AEC, 0xB87826, 0xA4C0E1, 0xA45C27, 0xA438CC,
+  0x9CE635, 0x98E8FA, 0x98B6E9, 0x98415C, 0x9458CB, 0x8CCDE8, 0x8C56C5, 0x7CBB8A,
+  0x78A2A0, 0x7048F7, 0x64B5C6, 0x606BFF, 0x5C521E, 0x58BDA3, 0x582F40, 0x48A5E7,
+  0x40F407, 0x40D28A, 0x34AF2C, 0x342FBD, 0x2C10C1, 0x182A7B, 0x0403D6, 0x002709,
+  0x002659, 0x0025A0, 0x0024F3, 0x002444, 0x00241E, 0x0023CC, 0x002331, 0x0022D7,
+  0x0022AA, 0x00224C, 0x0021BD, 0x002147, 0x001FC5, 0x001F32, 0x001EA9, 0x001E35,
+  0x001DBC, 0x001CBE, 0x001BEA, 0x001B7A, 0x001AE9, 0x0019FD, 0x00191D, 0x0017AB,
+  0x001656, 0x0009BF
 };
 
 int hci_read_scan_enable(int dd, uint8_t * enabled, int to)
@@ -99,7 +105,8 @@ int hci_write_scan_enable(int dd, uint8_t enabled, int to)
 
 int set_up_device_address(int dd, int device_id)
 {
-  int ret;
+  int ret, i;
+  uint32_t uap;
   struct hci_dev_info di;
   struct hci_version ver;
 
@@ -134,10 +141,21 @@ int set_up_device_address(int dd, int device_id)
     return -1;
   }
 
+  //check if bdaddr already has a Nintendo OUI (e.g. it was manually set)
+  uap = (original_bdaddr.b[5] << 16) | (original_bdaddr.b[4] << 8) |
+    original_bdaddr.b[3];
+  for (i = 0; i < sizeof(nintendo_ouis); i++)
+  {
+    if (nintendo_ouis[i] == uap)
+    {
+      return 0;
+    }
+  }
+
   bacpy(&wiimote_baddr, &original_bdaddr);
-  wiimote_baddr.b[5] = nintendo_ouis[0].b[5];
-  wiimote_baddr.b[4] = nintendo_ouis[0].b[4];
-  wiimote_baddr.b[3] = nintendo_ouis[0].b[3];
+  wiimote_baddr.b[5] = (nintendo_ouis[65] >> 16) & 0xFF;
+  wiimote_baddr.b[4] = (nintendo_ouis[65] >> 8) & 0xFF;
+  wiimote_baddr.b[3] = (nintendo_ouis[65]) & 0xFF;
 
   ret = set_device_bdaddr(dd, &ver, &wiimote_baddr);
   if (ret < 0)
@@ -147,6 +165,8 @@ int set_up_device_address(int dd, int device_id)
       bt_compidtostr(ver.manufacturer), ver.manufacturer);
     return -1;
   }
+
+  bdaddr_was_set = 1;
 
   ret = ioctl(dd, HCIDEVDOWN, device_id);
   if (ret < 0)
@@ -169,6 +189,11 @@ int restore_device_address(int dd, int device_id)
 {
   int ret;
   struct hci_version ver;
+
+  if (bdaddr_was_set == 0)
+  {
+    return 0;
+  }
 
   ret = hci_read_local_version(dd, &ver, 1000);
   if (ret < 0)
