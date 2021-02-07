@@ -309,6 +309,7 @@ static struct {
 	{ 48,		st_write_bd_addr,	generic_reset_device	},
 	{ 57,		ericsson_write_bd_addr,	generic_reset_device	},
 	{ 72,		mrvl_write_bd_addr,	generic_reset_device	},
+	{ 305,	bcm_write_bd_addr,	generic_reset_device	},
 	{ 65535,	NULL,			NULL			},
 };
 
@@ -338,17 +339,6 @@ int set_device_bdaddr(int dd, const struct hci_version * ver, const bdaddr_t * b
 				fprintf(stderr, "Can't write new address\n");
 				return -1;
 			}
-
-			// if (vendor[i].reset_device)
-			// {
-			// 	if (vendor[i].reset_device(dd) < 0)
-			// 	{
-			// 		fprintf(stderr, "Couldn't reset device\n");
-			// 		return -2;
-			// 	}
-			// } else {
-			// 	return -2;
-			// }
 
 			return 0;
 		}
