@@ -212,6 +212,7 @@ int main(int argc, char *argv[])
   struct wiimote_state state;
 
   int send_report_now = 1;
+  int input_result;
   int failure = 0;
 
   if (argc > 1)
@@ -384,9 +385,14 @@ int main(int argc, char *argv[])
       }
     }
 
-    if (input_update(&state) == 0)
+    input_result = input_update(&state);
+    if (input_result)
     {
        running = 0;
+       if (input_result == -2)
+       {
+         power_off_host(&host_bdaddr);
+       }
     }
 
     if (is_connected && send_report_now)

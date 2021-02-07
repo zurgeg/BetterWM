@@ -69,7 +69,15 @@ int input_update(struct wiimote_state *state)
       switch (event.key.keysym.sym)
       {
       case SDLK_ESCAPE:
-        return 0;
+        if (shift)
+        {
+          //power off
+          return -2;
+        }
+        else
+        {
+          return -1;
+        }
         break;
 
       case SDLK_0:
@@ -437,5 +445,5 @@ int input_update(struct wiimote_state *state)
     break;
   }
 
-  return 1;
+  return 0;
 }

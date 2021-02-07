@@ -451,3 +451,38 @@ int restore_device()
   hci_close_dev(dd);
   return 0;
 }
+
+int power_off_host(const bdaddr_t * host_bdaddr)
+{
+  int ret, dd;
+  struct hci_conn_info_req * cr;
+  
+  dd = hci_open_dev(hci_get_route((bdaddr_t *)host_bdaddr));
+  if (dd < 0)
+  {
+    return dd;
+  }
+  
+  cr = (struct hci_conn_info_req *)malloc(sizeof(struct hci_conn_info_req) + sizeof(struct hci_conn_info));
+  bacpy(&cr->bdaddr, host_bdaddr);
+  cr->type = ACL_LINK;
+
+  ret = ioctl(dd, HCIGETCONNINFO, (unsigned long)cr);
+  if (ret)
+  {
+    hci_close_dev(dd);
+    free(cr);
+    return ret;
+  }
+  
+  ret = hci_disconnect(dd, cr->conn_info->handle, HCI_OE_POWER_OFF, HCI_TIMEOUT);
+  hci_close_dev(dd);
+  free(cr);
+
+  if (ret)
+  {    
+    return ret;
+  }
+
+  return 0;
+}
