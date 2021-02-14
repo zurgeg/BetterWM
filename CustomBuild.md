@@ -1,9 +1,6 @@
 # Custom Build
 
-This is a reference for what the `build-custom.sh` script is for. In many cases, 
-it shouldn't be needed but it is an alternative option and works more like older
-versions of the emulator. It also may be useful in cases where a custom-built
-bluetooth stack is needed anyway.
+This is a reference for what the `build-custom.sh` script does.
 
 The custom build downloads and builds a patched version of bluez-4.101 with
 the following changes:
