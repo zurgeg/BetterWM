@@ -6,8 +6,6 @@
 
 #define PI 3.141592654
 
-extern bool show_reports;
-
 void input_init();
 void input_unload();
 int input_update(struct wiimote_state * state);

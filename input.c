@@ -8,10 +8,11 @@
 int up, down, left, right;
 bool steerright, steerleft;
 double steerang = (PI / 2);
-int arrow_function = 0; //0 for IR, 1 for nunchuck stick, 2 for classic stick
+int arrow_function = 0;
 bool togglekey0 = 0;
 bool togglekey9 = 0;
 bool shift;
+extern int show_reports;
 
 void input_init()
 {
@@ -46,7 +47,7 @@ void input_init()
          "     _     _             `-..-'------------`...-'\n"
          "   ,'       `.\n"
          "  ,' t     y '.     0: toggles arrow keys between\n"
-         "  V           V        IR/nunchuck/classic/motion plus\n"
+         "  V           V        IR/nunchuk/classic/motion plus\n"
          "                    ESC: quit\n\n");
 }
 
@@ -85,7 +86,7 @@ int input_update(struct wiimote_state *state)
         {
           togglekey0 = 1;
           arrow_function = (arrow_function + 1) % 4;
-          printf("arrows (IR, nunchuck, classic, wmp): %d \n", arrow_function);
+          printf("arrows (IR, nunchuk, classic, wmp): %d \n", arrow_function);
           if (arrow_function != 0)
           {
             ir_object_clear(state, 0);
@@ -105,19 +106,19 @@ int input_update(struct wiimote_state *state)
 
           if (arrow_function == 1)
           {
-            state->usr.extension = 1;
+            state->usr.connected_extension_type = Nunchuk;
           }
           else if (arrow_function == 2)
           {
-            state->usr.extension = 2;
+            state->usr.connected_extension_type = Classic;
           }
           else if (arrow_function == 3)
           {
-            state->usr.extension = 1;
+            state->usr.connected_extension_type = Nunchuk;
           }
           else
           {
-            state->usr.extension = 0;
+            state->usr.connected_extension_type = NoExtension;
           }
         }
         break;
@@ -158,7 +159,7 @@ int input_update(struct wiimote_state *state)
         }
         else
         {
-          state->usr.nunchuck.c = 1;
+          state->usr.nunchuk.c = 1;
         }
         break;
       case SDLK_e:
@@ -168,7 +169,7 @@ int input_update(struct wiimote_state *state)
         }
         else
         {
-          state->usr.nunchuck.z = 1;
+          state->usr.nunchuk.z = 1;
         }
         break;
       case SDLK_1:
@@ -288,11 +289,11 @@ int input_update(struct wiimote_state *state)
         state->usr.classic.b = 0;
         break;
       case SDLK_q:
-        state->usr.nunchuck.c = 0;
+        state->usr.nunchuk.c = 0;
         state->usr.classic.x = 0;
         break;
       case SDLK_e:
-        state->usr.nunchuck.z = 0;
+        state->usr.nunchuk.z = 0;
         state->usr.classic.y = 0;
         break;
       case SDLK_1:
@@ -430,8 +431,8 @@ int input_update(struct wiimote_state *state)
     }
     break;
   case 1:
-    state->usr.nunchuck.x = 128 + right * 100 - left * 100;
-    state->usr.nunchuck.y = 128 + up * 100 - down * 100;
+    state->usr.nunchuk.x = 128 + right * 100 - left * 100;
+    state->usr.nunchuk.y = 128 + up * 100 - down * 100;
     break;
   case 2:
     state->usr.classic.ls_x = 32 + right * 30 - left * 30;

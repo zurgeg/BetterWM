@@ -128,7 +128,7 @@ struct report_interleaved
   struct report_ir_full_obj obj[2];
 } __attribute__((packed));
 
-struct report_ext_nunchuck
+struct report_ext_nunchuk
 {
   uint8_t x;
   uint8_t y;
@@ -143,7 +143,7 @@ struct report_ext_nunchuck
   int accel_z_lo:2;
 } __attribute__((packed));
 
-struct report_ext_nunchuck_pt
+struct report_ext_nunchuk_pt
 {
   //different format if in passthrough mode with motionplus
   uint8_t x;
@@ -367,7 +367,8 @@ void report_queue_pop(struct wiimote_state * state);
 void report_queue_push_ack(struct wiimote_state *state, uint8_t report, uint8_t result);
 void report_queue_push_status(struct wiimote_state * state);
 
-void report_format_mem_resp(struct report * rpt, int size, int error, uint16_t addr, uint8_t * buf);
+void report_format_mem_resp(struct wiimote_state * state, struct report * rpt,
+  int size, int error, uint16_t addr, uint8_t * buf, bool encrypt);
 
 void report_append_buttons(struct wiimote_state * state, uint8_t * buf);
 void report_append_accelerometer(struct wiimote_state * state, uint8_t * buf);

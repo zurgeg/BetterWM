@@ -17,7 +17,7 @@
 #include "sdp.h"
 #include "wiimote.h"
 #include "input.h"
-#include "device_setup.h"
+#include "adapter.h"
 
 #define PSM_SDP 1
 #define PSM_CTRL 0x11
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 #endif
 
   input_init();
-  init_wiimote(&state);
+  wiimote_init(&state);
 
   if (has_host)
   {
@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
           is_connected = 0;
         }
 
-        usleep(200*1000);
+        usleep(2*1000*1000);
       }
     }
 
@@ -448,7 +448,7 @@ int main(int argc, char *argv[])
   unregister_wiimote_sdp_record();
 #endif
 
-  destroy_wiimote(&state);
+  wiimote_destroy(&state);
   input_unload();
 
   return 0;

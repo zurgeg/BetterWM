@@ -86,7 +86,8 @@ void report_queue_push_status(struct wiimote_state * state)
   status->battery_level       = state->sys.battery_level;
 }
 
-void report_format_mem_resp(struct report * rpt, int size, int error, uint16_t addr, uint8_t * buf)
+void report_format_mem_resp(struct wiimote_state * state, struct report * rpt,
+  int size, int error, uint16_t addr, uint8_t * buf, bool encrypt)
 {
   struct report_mem_resp * resp = (struct report_mem_resp *)rpt->data.buf;
 
@@ -94,12 +95,17 @@ void report_format_mem_resp(struct report * rpt, int size, int error, uint16_t a
   rpt->data.io = 0xa1;
   rpt->data.type = 0x21;
 
-  resp->size = size-1;
+  resp->size = size - 1;
   resp->error = error;
   resp->addr = htons(addr);
   if (buf != NULL) //buf will be null for error reports
   {
     memcpy(resp->data, buf, size);
+
+    if (encrypt)
+    {
+      ext_encrypt_bytes(&state->sys.extension_crypto_state, resp->data, addr & 0x7, size);
+    }
   }
 }
 
@@ -228,45 +234,47 @@ void report_append_interleaved(struct wiimote_state * state, uint8_t * buf)
 
 void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_t bytes)
 {
-    //a600fe = 0x04 activate motionplus, 0x05 activate nunchuk passthrough, 0x07 activate classic passthrough
-        //if no other extension, send 0x20
+  //a600fe = 0x04 activate motionplus, 0x05 activate nunchuk passthrough, 0x07 activate classic passthrough
+      //if no other extension, send 0x20
 
-    //a600f0 = 0x55 deactivate motionplus
-        //send report 0x20 twice (once for unplugged, once for plugged in)
+  //a600f0 = 0x55 deactivate motionplus
+      //send report 0x20 twice (once for unplugged, once for plugged in)
 
-    //0xa400fa contents
-    //0000 A420 0000   Nunchuk
-    //0000 A420 0101    Classic
-    //0000 A420 0405    WMP
-    //0000 A420 0505    WMP nunchuk
-    //0000 A420 0705    WMP classic
+  //0xa400fa contents
+  //0000 A420 0000   Nunchuk
+  //0000 A420 0101    Classic
+  //0000 A420 0405    WMP
+  //0000 A420 0505    WMP nunchuk
+  //0000 A420 0705    WMP classic
 
-    //0000 A620 0005    Inactive WMP
-    //      ^=6         Deactivated WMP
+  //0000 A620 0005    Inactive WMP
+  //      ^=6         Deactivated WMP
 
-    //memset(buf + 6, 0, sizeof(uint8_t) * (bytes - 6));
-    //memset(buf + offset + 6, 0, sizeof(uint8_t) * (bytes - 6));
+  //these should be set to the the address offset of the extension data
+  //and the length in bytes of the extesnion data
+  //right now, they are always the same in all situations
+  int addr_offset = 0x08, length = 6;
 
   switch (state->sys.extension_report_type)
   {
-    case 0x01: //nunchuck
+    case 0x00: //nunchuk
     {
-      struct report_ext_nunchuck * rpt = (struct report_ext_nunchuck *)buf;
+      struct report_ext_nunchuk * rpt = (struct report_ext_nunchuk *)buf;
 
-      rpt->x = state->usr.nunchuck.x;
-      rpt->y = state->usr.nunchuck.y;
-      rpt->accel_x_hi = state->usr.nunchuck.accel_x >> 2;
-      rpt->accel_y_hi = state->usr.nunchuck.accel_y >> 2;
-      rpt->accel_z_hi = state->usr.nunchuck.accel_z >> 2;
-      rpt->accel_x_lo = state->usr.nunchuck.accel_x;
-      rpt->accel_y_lo = state->usr.nunchuck.accel_y;
-      rpt->accel_z_lo = state->usr.nunchuck.accel_z;
-      rpt->c = state->usr.nunchuck.c;
-      rpt->z = state->usr.nunchuck.z;
+      rpt->x = state->usr.nunchuk.x;
+      rpt->y = state->usr.nunchuk.y;
+      rpt->accel_x_hi = state->usr.nunchuk.accel_x >> 2;
+      rpt->accel_y_hi = state->usr.nunchuk.accel_y >> 2;
+      rpt->accel_z_hi = state->usr.nunchuk.accel_z >> 2;
+      rpt->accel_x_lo = state->usr.nunchuk.accel_x;
+      rpt->accel_y_lo = state->usr.nunchuk.accel_y;
+      rpt->accel_z_lo = state->usr.nunchuk.accel_z;
+      rpt->c = state->usr.nunchuk.c;
+      rpt->z = state->usr.nunchuk.z;
 
       break;
     }
-    case 0x02: //classic
+    case 0x01: //classic
     {
       struct report_ext_classic * rpt = (struct report_ext_classic *)buf;
 
@@ -321,7 +329,7 @@ void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_
 
       break;
     }
-    case 0x05: //motionplus + nunchuck
+    case 0x05: //motionplus + nunchuk
       if (state->sys.extension_report)
       {
         struct report_ext_motionplus * rpt = (struct report_ext_motionplus *)buf;
@@ -344,18 +352,18 @@ void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_
       }
       else
       {
-        struct report_ext_nunchuck_pt * rpt = (struct report_ext_nunchuck_pt *)buf;
+        struct report_ext_nunchuk_pt * rpt = (struct report_ext_nunchuk_pt *)buf;
 
-        rpt->x = state->usr.nunchuck.x;
-        rpt->y = state->usr.nunchuck.y;
-        rpt->accel_x_hi = state->usr.nunchuck.accel_x >> 2;
-        rpt->accel_y_hi = state->usr.nunchuck.accel_y >> 2;
-        rpt->accel_z_hi = state->usr.nunchuck.accel_z >> 3;
-        rpt->accel_x_lo = state->usr.nunchuck.accel_x >> 1;
-        rpt->accel_y_lo = state->usr.nunchuck.accel_y >> 1;
-        rpt->accel_z_lo = state->usr.nunchuck.accel_z >> 1;
-        rpt->c = state->usr.nunchuck.c;
-        rpt->z = state->usr.nunchuck.z;
+        rpt->x = state->usr.nunchuk.x;
+        rpt->y = state->usr.nunchuk.y;
+        rpt->accel_x_hi = state->usr.nunchuk.accel_x >> 2;
+        rpt->accel_y_hi = state->usr.nunchuk.accel_y >> 2;
+        rpt->accel_z_hi = state->usr.nunchuk.accel_z >> 3;
+        rpt->accel_x_lo = state->usr.nunchuk.accel_x >> 1;
+        rpt->accel_y_lo = state->usr.nunchuk.accel_y >> 1;
+        rpt->accel_z_lo = state->usr.nunchuk.accel_z >> 1;
+        rpt->c = state->usr.nunchuk.c;
+        rpt->z = state->usr.nunchuk.z;
 
         rpt->ext = 1;
 
@@ -422,16 +430,8 @@ void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_
   }
 
 
-  if (state->sys.extension_encrypted) //encryption required
+  if (state->sys.extension_encrypted)
   {
-    int i;
-    //if crypto problems arise, try encrypting all the bytes
-    //only the 6 containing data are done now
-    for (i=0;i<6;i++)
-    {
-      //buf[i] = (buf[i] - ft[(0x08 + i)%8]) ^ sb[(0x08 + i)%8];
-      //above is technically the full operation, below is equivalent (as of now)
-      buf[i] = (buf[i] - ft[i]) ^ sb[i];
-    }
+    ext_encrypt_bytes(&state->sys.extension_crypto_state, buf, addr_offset, length);
   }
 }

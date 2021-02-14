@@ -1,18 +1,18 @@
 #include "wm_crypto.h"
-#include "wiimote.h"
 
 //extension crypto (2602 bytes)
-uint8_t ans_tbl[7][6] = {
+
+static const uint8_t ans_tbl[7][6] = {
   {0xA8,0x77,0xA6,0xE0,0xF7,0x43},
   {0x5A,0x35,0x85,0xE2,0x72,0x97},
   {0x8F,0xB7,0x1A,0x62,0x87,0x38},
   { 0xD,0x67,0xC7,0xBE,0x4F,0x3E},
   {0x20,0x76,0x37,0x8F,0x68,0xB7},
   {0xA9,0x26,0x3F,0x2B,0x10,0xE3},
-  {0x30,0x7E,0x90, 0xE,0x85, 0xA},
+  {0x30,0x7E,0x90, 0xE,0x85, 0xA}
 };
 
-uint8_t sboxes[10][256] = {
+static const uint8_t sboxes[10][256] = {
   {
     0x70,0x51,   3,0x86,0x40, 0xD,0x4F,0xEB,0x3E,0xCC,0xD1,0x87,0x35,0xBD,0xF5, 0xB,
     0x5E,0xD0,0xF8,0xF2,0xD5,0xE2,0x6C,0x31, 0xC,0xAD,0xFC,0x21,0xC3,0x78,0xC1,   6,
@@ -182,50 +182,58 @@ static inline uint8_t ror8(uint8_t a, uint8_t b)
   return (a>>b) | ((a<<(8-b))&0xff);
 }
 
-void generate_tables()
+void ext_generate_tables(struct ext_crypto_state * state, const uint8_t key[16])
 {
-  uint8_t idx;
-  uint8_t *ans;
+  int idx, i;
+  const uint8_t * ans;
   uint8_t t0[10];
-  uint8_t i;
 
   //determine idx with simple brute force
-  for(idx=0;idx<7;idx++)
+  for (idx = 0; idx < 7; idx++)
   {
     ans = ans_tbl[idx];
 
-    for(i=0;i<10;i++)
+    for(i = 0; i < 10; i++)
     {
-      t0[i] = sboxes[0][register_a4[0x49 - i]];
+      t0[i] = sboxes[0][key[9 - i]];
     }
 
     //todo: clean up this nasty mess
-    if ((register_a4[0x4f] == (uint8_t)((ror8(ans[0]^t0[5],t0[2]%8) - t0[9]) ^ t0[4])) &&
-      (register_a4[0x4e] == (uint8_t)((ror8(ans[1]^t0[1],t0[0]%8) - t0[5]) ^ t0[7])) &&
-      (register_a4[0x4d] == (uint8_t)((ror8(ans[2]^t0[6],t0[8]%8) - t0[2]) ^ t0[0])) &&
-      (register_a4[0x4c] == (uint8_t)((ror8(ans[3]^t0[4],t0[7]%8) - t0[3]) ^ t0[2])) &&
-      (register_a4[0x4b] == (uint8_t)((ror8(ans[4]^t0[1],t0[6]%8) - t0[3]) ^ t0[4])) &&
-      (register_a4[0x4a] == (uint8_t)((ror8(ans[5]^t0[7],t0[8]%8) - t0[5]) ^ t0[9])))
+    if ((key[0xf] == (uint8_t)((ror8(ans[0]^t0[5],t0[2]%8) - t0[9]) ^ t0[4])) &&
+      (key[0xe] == (uint8_t)((ror8(ans[1]^t0[1],t0[0]%8) - t0[5]) ^ t0[7])) &&
+      (key[0xd] == (uint8_t)((ror8(ans[2]^t0[6],t0[8]%8) - t0[2]) ^ t0[0])) &&
+      (key[0xc] == (uint8_t)((ror8(ans[3]^t0[4],t0[7]%8) - t0[3]) ^ t0[2])) &&
+      (key[0xb] == (uint8_t)((ror8(ans[4]^t0[1],t0[6]%8) - t0[3]) ^ t0[4])) &&
+      (key[0xa] == (uint8_t)((ror8(ans[5]^t0[7],t0[8]%8) - t0[5]) ^ t0[9])))
     {
       break;
     }
   }
 
-  ft[0] = sboxes[idx+1][register_a4[0x4b]] ^ sboxes[idx+2][register_a4[0x46]];
-  ft[1] = sboxes[idx+1][register_a4[0x4d]] ^ sboxes[idx+2][register_a4[0x44]];
-  ft[2] = sboxes[idx+1][register_a4[0x4a]] ^ sboxes[idx+2][register_a4[0x42]];
-  ft[3] = sboxes[idx+1][register_a4[0x4f]] ^ sboxes[idx+2][register_a4[0x47]];
-  ft[4] = sboxes[idx+1][register_a4[0x4e]] ^ sboxes[idx+2][register_a4[0x45]];
-  ft[5] = sboxes[idx+1][register_a4[0x4c]] ^ sboxes[idx+2][register_a4[0x40]];
-  ft[6] = sboxes[idx+1][register_a4[0x49]] ^ sboxes[idx+2][register_a4[0x43]];
-  ft[7] = sboxes[idx+1][register_a4[0x48]] ^ sboxes[idx+2][register_a4[0x41]];
+  state->ft[0] = sboxes[idx+1][key[0xb]] ^ sboxes[idx+2][key[0x6]];
+  state->ft[1] = sboxes[idx+1][key[0xd]] ^ sboxes[idx+2][key[0x4]];
+  state->ft[2] = sboxes[idx+1][key[0xa]] ^ sboxes[idx+2][key[0x2]];
+  state->ft[3] = sboxes[idx+1][key[0xf]] ^ sboxes[idx+2][key[0x7]];
+  state->ft[4] = sboxes[idx+1][key[0xe]] ^ sboxes[idx+2][key[0x5]];
+  state->ft[5] = sboxes[idx+1][key[0xc]] ^ sboxes[idx+2][key[0x0]];
+  state->ft[6] = sboxes[idx+1][key[0x9]] ^ sboxes[idx+2][key[0x3]];
+  state->ft[7] = sboxes[idx+1][key[0x8]] ^ sboxes[idx+2][key[0x1]];
 
-  sb[0] = sboxes[idx+1][register_a4[0x4f]] ^ sboxes[idx+2][register_a4[0x48]];
-  sb[1] = sboxes[idx+1][register_a4[0x4a]] ^ sboxes[idx+2][register_a4[0x45]];
-  sb[2] = sboxes[idx+1][register_a4[0x4c]] ^ sboxes[idx+2][register_a4[0x49]];
-  sb[3] = sboxes[idx+1][register_a4[0x4d]] ^ sboxes[idx+2][register_a4[0x40]];
-  sb[4] = sboxes[idx+1][register_a4[0x4b]] ^ sboxes[idx+2][register_a4[0x42]];
-  sb[5] = sboxes[idx+1][register_a4[0x4e]] ^ sboxes[idx+2][register_a4[0x41]];
-  sb[6] = sboxes[idx+1][register_a4[0x46]] ^ sboxes[idx+2][register_a4[0x44]];
-  sb[7] = sboxes[idx+1][register_a4[0x47]] ^ sboxes[idx+2][register_a4[0x43]];
+  state->sb[0] = sboxes[idx+1][key[0xf]] ^ sboxes[idx+2][key[0x8]];
+  state->sb[1] = sboxes[idx+1][key[0xa]] ^ sboxes[idx+2][key[0x5]];
+  state->sb[2] = sboxes[idx+1][key[0xc]] ^ sboxes[idx+2][key[0x9]];
+  state->sb[3] = sboxes[idx+1][key[0xd]] ^ sboxes[idx+2][key[0x0]];
+  state->sb[4] = sboxes[idx+1][key[0xb]] ^ sboxes[idx+2][key[0x2]];
+  state->sb[5] = sboxes[idx+1][key[0xe]] ^ sboxes[idx+2][key[0x1]];
+  state->sb[6] = sboxes[idx+1][key[0x6]] ^ sboxes[idx+2][key[0x4]];
+  state->sb[7] = sboxes[idx+1][key[0x7]] ^ sboxes[idx+2][key[0x3]];
+}
+
+void ext_encrypt_bytes(const struct ext_crypto_state * state, uint8_t * buffer,
+  int addr_offset, int length)
+{
+  for (int i = 0; i < length; i++)
+  {
+    buffer[i] = (buffer[i] - state->ft[(i + addr_offset) % 8]) ^ state->sb[(i + addr_offset) % 8];
+  }
 }

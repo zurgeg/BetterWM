@@ -3,9 +3,15 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "wm_crypto.h"
 
-#define EXT_NUNCHUCK 0x1
-#define EXT_CLASSIC 0x2
+enum wiimote_connected_extension_type
+{
+  Nunchuk = 0x0,
+  Classic = 0x1,
+  BalanceBoard = 0x2,
+  NoExtension = 0xff
+};
 
 struct wiimote_ir_object
 {
@@ -19,7 +25,7 @@ struct wiimote_ir_object
   uint8_t intensity;
 };
 
-struct wiimote_nunchuck
+struct wiimote_nunchuk
 {
   uint16_t accel_x;
   uint16_t accel_y;
@@ -68,7 +74,6 @@ struct wiimote_motionplus
 
 struct wiimote_state_usr
 {
-  //main controller buttons
   bool a;
   bool b;
   bool minus;
@@ -91,13 +96,11 @@ struct wiimote_state_usr
   uint16_t accel_y;
   uint16_t accel_z;
 
-  //four ir camera dots
-  //x, y, size, x min, y min, x max, y max, intensity
   struct wiimote_ir_object ir_object[4];
 
-  uint8_t extension;
+  enum wiimote_connected_extension_type connected_extension_type;
 
-  struct wiimote_nunchuck nunchuck;
+  struct wiimote_nunchuk nunchuk;
   struct wiimote_classic classic;
   struct wiimote_motionplus motionplus;
 };
@@ -119,11 +122,13 @@ struct wiimote_state_sys
   bool low_battery;
 
   bool extension_connected;
-  uint8_t extension;
+  enum wiimote_connected_extension_type connected_extension_type;
 
+  struct ext_crypto_state extension_crypto_state;
   bool extension_report;
   bool extension_encrypted;
   uint8_t extension_report_type;
+  uint8_t extension_type;
   uint8_t wmp_state; //0 inactive, 1 active, 2 deactivated
 
   uint8_t reporting_mode;
@@ -133,9 +138,10 @@ struct wiimote_state_sys
   struct queued_report * queue;
   struct queued_report * queue_end;
 
-  //extensions:
-  //none, nunchuck, classic, wm+, wm+ and nunchuck, wm+ and classic
-
+  uint8_t register_a2[10]; //speaker
+  uint8_t register_a4[256]; //extension
+  uint8_t register_a6[256]; //wii motion plus
+  uint8_t register_b0[52]; //ir camera
 };
 
 struct wiimote_state
@@ -144,15 +150,10 @@ struct wiimote_state
   struct wiimote_state_usr usr;
 };
 
-//574bytes
-//TODO: move this to the wiimote struct where it belongs
-uint8_t register_a2[0x09 + 1]; //speaker
-uint8_t register_a4[0xff + 1]; //extension
-uint8_t register_a6[0xff + 1]; //wii motion plus
-uint8_t register_b0[0x33 + 1]; //ir camera
+void wiimote_init(struct wiimote_state *state);
+void wiimote_destroy(struct wiimote_state *state);
 
-void init_wiimote(struct wiimote_state *state);
-void destroy_wiimote(struct wiimote_state *state);
+void wiimote_reset(struct wiimote_state *state);
 
 int process_report(struct wiimote_state *state, const uint8_t *buf, int len);
 int generate_report(struct wiimote_state * state, uint8_t * buf);
@@ -166,4 +167,4 @@ void write_register(struct wiimote_state *state, uint32_t offset, uint8_t size, 
 
 void init_extension(struct wiimote_state *state);
 
-#endif
+#endif //WIIMOTE_H

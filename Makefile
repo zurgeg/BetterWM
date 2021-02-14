@@ -10,8 +10,7 @@ LDBUS=`pkg-config --cflags dbus-1` -ldbus-1
 
 all: wmemulator packedtest
 clean:
-	rm -f wmemulator packedtest
-wmemulator: wmemulator.c wiimote.c input.c wm_crypto.c wm_reports.c wm_print.c sdp.c oui.c bdaddr.c device_setup.c
-	gcc $(CFLAGS) -o wmemulator wmemulator.c wiimote.c input.c wm_crypto.c wm_reports.c wm_print.c sdp.c oui.c bdaddr.c device_setup.c $(LBLUETOOTH) -lSDL -lpthread -lm $(LDBUS) -Wall
+wmemulator: wmemulator.c wiimote.c input.c wm_crypto.c wm_reports.c wm_print.c sdp.c oui.c bdaddr.c adapter.c
+	gcc $(CFLAGS) -o wmemulator wmemulator.c wiimote.c input.c wm_crypto.c wm_reports.c wm_print.c sdp.c oui.c bdaddr.c adapter.c $(LBLUETOOTH) -lSDL -lpthread -lm $(LDBUS) -Wall
 packedtest: packedtest.c
 	gcc -o packedtest packedtest.c

@@ -8,7 +8,7 @@
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 
-#include "device_setup.h"
+#include "adapter.h"
 #include "bdaddr.h"
 
 #define HCI_TIMEOUT 1000
