@@ -17,6 +17,8 @@
 #include "sdp.h"
 #include "wiimote.h"
 #include "input.h"
+#include "input_sdl.h"
+#include "input_socket.h"
 #include "adapter.h"
 
 #define PSM_SDP 1
@@ -203,8 +205,15 @@ void disconnect()
   int_fd = 0;
 }
 
+void print_usage(char *argv0)
+{
+  printf("usage: %s [ <wii-bdaddr> [ gui | socket ( unix <path> | ip <port> ) ] ]\n", argv0);
+}
+
 int main(int argc, char *argv[])
 {
+  struct input_source input_source = input_source_sdl;
+
   struct pollfd pfd[6];
   unsigned char buf[256];
   ssize_t len;
@@ -219,12 +228,42 @@ int main(int argc, char *argv[])
   {
     if (bachk(argv[1]) < 0)
     {
-      printf("usage: %s <wii-bdaddr>\n", *argv);
+      print_usage(*argv);
       return 1;
     }
 
     str2ba(argv[1], &host_bdaddr);
     has_host = 1;
+  }
+  if (argc > 2)
+  {
+    if (strcmp(argv[2], "gui") == 0)
+    {
+      input_source = input_source_sdl;
+    }
+    else if (strcmp(argv[2], "socket") == 0)
+    {
+      if (argc > 4 && strcmp(argv[3], "unix") == 0)
+      {
+        input_socket_init_unix_at_path(argv[4]);
+      }
+      else if (argc > 4 && strcmp(argv[3], "ip") == 0)
+      {
+        input_socket_init_ip_on_port(argv[4]);
+      }
+      else
+      {
+        print_usage(*argv);
+        return 1;
+      }
+
+      input_source = input_source_socket;
+    }
+    else
+    {
+      print_usage(*argv);
+      return 1;
+    }
   }
 
   //set up unload signals
@@ -247,7 +286,6 @@ int main(int argc, char *argv[])
   }
 #endif
 
-  input_init();
   wiimote_init(&state);
 
   if (has_host)
@@ -385,7 +423,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    input_result = input_update(&state);
+    input_result = input_update(&state, &input_source);
     if (input_result)
     {
        running = 0;
@@ -449,7 +487,7 @@ int main(int argc, char *argv[])
 #endif
 
   wiimote_destroy(&state);
-  input_unload();
+  input_source.unload();
 
   return 0;
 }
