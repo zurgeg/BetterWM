@@ -207,12 +207,12 @@ void disconnect()
 
 void print_usage(char *argv0)
 {
-  printf("usage: %s [ <wii-bdaddr> [ gui | socket ( unix <path> | ip <port> ) ] ]\n", argv0);
+  printf("usage: %s [ <wii-bdaddr> [ gui | unix <path> | ip <port> ] ]\n", argv0);
 }
 
 int main(int argc, char *argv[])
 {
-  struct input_source input_source = input_source_sdl;
+  struct input_source input_source;
 
   struct pollfd pfd[6];
   unsigned char buf[256];
@@ -235,35 +235,24 @@ int main(int argc, char *argv[])
     str2ba(argv[1], &host_bdaddr);
     has_host = 1;
   }
-  if (argc > 2)
+  if (argc <= 2 || strcmp(argv[2], "gui") == 0)
   {
-    if (strcmp(argv[2], "gui") == 0)
-    {
-      input_source = input_source_sdl;
-    }
-    else if (strcmp(argv[2], "socket") == 0)
-    {
-      if (argc > 4 && strcmp(argv[3], "unix") == 0)
-      {
-        input_socket_init_unix_at_path(argv[4]);
-      }
-      else if (argc > 4 && strcmp(argv[3], "ip") == 0)
-      {
-        input_socket_init_ip_on_port(argv[4]);
-      }
-      else
-      {
-        print_usage(*argv);
-        return 1;
-      }
-
-      input_source = input_source_socket;
-    }
-    else
-    {
-      print_usage(*argv);
-      return 1;
-    }
+    input_sdl_init();
+    input_source = input_source_sdl;
+  }
+  else if (argc > 3 && strcmp(argv[2], "unix") == 0)
+  {
+    input_socket_init_unix_at_path(argv[3]);
+    input_source = input_source_socket;
+  }
+  else if (argc > 3 && strcmp(argv[3], "ip") == 0)
+    input_socket_init_ip_on_port(argv[3]);
+    input_source = input_source_socket;
+  }
+  else
+  {
+    print_usage(*argv);
+    return 1;
   }
 
   //set up unload signals
