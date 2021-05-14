@@ -32,6 +32,7 @@ int input_update(struct wiimote_state *state, struct input_source const * source
         show_reports = (show_reports + 1) % 2;
         break;
       }
+      break;
     case INPUT_EVENT_TYPE_HOTPLUG:
       switch (event.hotplug_event.extension)
       {
@@ -155,6 +156,7 @@ int input_update(struct wiimote_state *state, struct input_source const * source
         printf("warning: button %d not handled by input_update\n", event.button_event.button);
         break;
       }
+      break;
     }
     case INPUT_EVENT_TYPE_ANALOG_MOTION: {
       bool moving = event.analog_motion_event.moving;
@@ -224,6 +226,7 @@ int input_update(struct wiimote_state *state, struct input_source const * source
           motionplus_slow = moving;
           break;
       }
+      break;
     }
     default:
       break;
