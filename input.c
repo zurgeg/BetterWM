@@ -3,448 +3,315 @@
 #include "SDL/SDL.h"
 #include <math.h>
 
-/* This old file badly needs refactoring. */
-
-int up, down, left, right;
-bool steerright, steerleft;
-double steerang = (PI / 2);
-int arrow_function = 0;
-bool togglekey0 = 0;
-bool togglekey9 = 0;
-bool shift;
+int ir_up, ir_down, ir_left, ir_right,
+    steer_left, steer_right,
+    nunchuk_up, nunchuk_down, nunchuk_left, nunchuk_right,
+    classic_left_stick_up, classic_left_stick_down, classic_left_stick_left, classic_left_stick_right,
+    motionplus_up, motionplus_down, motionplus_left, motionplus_right, motionplus_slow; 
+double steer_angle = (PI / 2);
 extern int show_reports;
 
-void input_init()
+int input_update(struct wiimote_state *state, struct input_source const * source)
 {
-  //init SDL
-  if (SDL_Init(0) < 0)
-  {
-    printf("Could not initialize SDL: %s\n", SDL_GetError());
-    exit(1);
-  }
-  SDL_SetVideoMode(128, 128, 0, 0);
-  printf("Commands overview\n"
-         "-----------------\n"
-         "                 __ arrows use keypad numbers!\n"
-         "     ........  L'\n"
-         "    |   .    |\\           ,.._\n"
-         "    |   8    | |        ,'    \\\\\n"
-         "    | -4 6-  | |        |   ^  |\\\n"
-         "    |   2    | |        | <-|->/ |q\n"
-         "    |   '    | |\\       `   v '  |\n"
-         "    |  /-\\   | |b|      |     | _/e\n"
-         "    |  |a|   |  \\|      |     //\n"
-         "    |  \\-/   |   |      |    |/\n"
-         "    |        |   |      |    |\n"
-         "    | 3 h 4  |   |       \\   /\n"
-         "    |        |   |        --'\n"
-         "    |        |   |        _...______________,...\n"
-         "    |   2    |   |      ,'                      `-\n"
-         "    |        |   |     /   ^      3 h 4       q   `.\n"
-         "    |   1    |  /      | <-|->             e    a  |\n"
-         "    |        |-/       \\   v                 b     /\n"
-         "    '`'''''''           \\                        ,'\n"
-         "     _     _             `-..-'------------`...-'\n"
-         "   ,'       `.\n"
-         "  ,' t     y '.     0: toggles arrow keys between\n"
-         "  V           V        IR/nunchuk/classic/motion plus\n"
-         "                    ESC: quit\n\n");
-}
-
-void input_unload()
-{
-  SDL_Quit();
-}
-
-int input_update(struct wiimote_state *state)
-{
-  SDL_Event event;
+  struct input_event event;
 
   /* Loop through waiting messages and process them */
 
-  while (SDL_PollEvent(&event))
+  while (source->poll_event(&event))
   {
     switch (event.type)
     {
-    case SDL_KEYDOWN:
-      switch (event.key.keysym.sym)
+    case INPUT_EVENT_TYPE_EMULATOR_CONTROL:
+      switch (event.emulator_control_event.control)
       {
-      case SDLK_ESCAPE:
-        if (shift)
-        {
-          //power off
-          return -2;
-        }
-        else
-        {
-          return -1;
-        }
-        break;
-
-      case SDLK_0:
-        if (togglekey0 == 0)
-        {
-          togglekey0 = 1;
-          arrow_function = (arrow_function + 1) % 4;
-          printf("arrows (IR, nunchuk, classic, wmp): %d \n", arrow_function);
-          if (arrow_function != 0)
-          {
-            ir_object_clear(state, 0);
-            ir_object_clear(state, 1);
-            ir_object_clear(state, 2);
-            ir_object_clear(state, 3);
-          }
-          else
-          {
-            state->usr.ir_object[0].x = 400;
-            state->usr.ir_object[0].y = 400;
-            state->usr.ir_object[0].size = 8;
-            state->usr.ir_object[1].x = 600;
-            state->usr.ir_object[1].y = 400;
-            state->usr.ir_object[1].size = 8;
-          }
-
-          if (arrow_function == 1)
-          {
-            state->usr.connected_extension_type = Nunchuk;
-          }
-          else if (arrow_function == 2)
-          {
-            state->usr.connected_extension_type = Classic;
-          }
-          else if (arrow_function == 3)
-          {
-            state->usr.connected_extension_type = Nunchuk;
-          }
-          else
-          {
-            state->usr.connected_extension_type = NoExtension;
-          }
-        }
-        break;
-      case SDLK_9:
-        if (togglekey9 == 0)
-        {
-          togglekey9 = 1;
-          show_reports = (show_reports + 1) % 2;
-        }
-        break;
-      case SDLK_LSHIFT:
-        shift = 1;
-        break;
-      case SDLK_a:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.a = 1;
-        }
-        else
-        {
-          state->usr.a = 1;
-        }
-        break;
-      case SDLK_d:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.b = 1;
-        }
-        else
-        {
-          state->usr.b = 1;
-        }
-        break;
-      case SDLK_q:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.x = 1;
-        }
-        else
-        {
-          state->usr.nunchuk.c = 1;
-        }
-        break;
-      case SDLK_e:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.y = 1;
-        }
-        else
-        {
-          state->usr.nunchuk.z = 1;
-        }
-        break;
-      case SDLK_1:
-        state->usr.one = 1;
-        break;
-      case SDLK_2:
-        state->usr.two = 1;
-        break;
-      case SDLK_3:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.minus = 1;
-        }
-        else
-        {
-          state->usr.minus = 1;
-        }
-        break;
-      case SDLK_4:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.plus = 1;
-        }
-        else
-        {
-          state->usr.plus = 1;
-        }
-        break;
-      case SDLK_h:
-        state->usr.home = 1;
-        break;
-      case SDLK_KP8:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.up = 1;
-        }
-        else
-        {
-          state->usr.up = 1;
-        }
-        break;
-      case SDLK_KP2:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.down = 1;
-        }
-        else
-        {
-          state->usr.down = 1;
-        }
-        break;
-      case SDLK_KP4:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.left = 1;
-        }
-        else
-        {
-          state->usr.left = 1;
-        }
-        break;
-      case SDLK_KP6:
-        if (arrow_function == 2)
-        {
-          state->usr.classic.right = 1;
-        }
-        else
-        {
-          state->usr.right = 1;
-        }
-        break;
-      case SDLK_UP:
-        up = 1;
-        break;
-
-      case SDLK_DOWN:
-        down = 1;
-        break;
-
-      case SDLK_LEFT:
-        left = 1;
-        break;
-
-      case SDLK_RIGHT:
-        right = 1;
-        break;
-
-      case SDLK_t:
-        steerleft = 1;
-        break;
-      case SDLK_y:
-        steerright = 1;
-        break;
-      default:
+      case INPUT_EMULATOR_CONTROL_QUIT:
+        return -1;
+      case INPUT_EMULATOR_CONTROL_POWER_OFF:
+        return -2;
+      case INPUT_EMULATOR_CONTROL_TOGGLE_REPORTS:
+        show_reports = (show_reports + 1) % 2;
         break;
       }
       break;
-
-    case SDL_KEYUP:
-      switch (event.key.keysym.sym)
+    case INPUT_EVENT_TYPE_HOTPLUG:
+      switch (event.hotplug_event.extension)
       {
-      case SDLK_0:
-        togglekey0 = 0;
+      case Nunchuk:
+      case Classic:
+      case BalanceBoard:
+        ir_object_clear(state, 0);
+        ir_object_clear(state, 1);
+        ir_object_clear(state, 2);
+        ir_object_clear(state, 3);
         break;
-      case SDLK_9:
-        togglekey9 = 0;
-        break;
-      case SDLK_LSHIFT:
-        shift = 0;
-        break;
-      case SDLK_a:
-        state->usr.a = 0;
-        state->usr.classic.a = 0;
-        break;
-      case SDLK_d:
-        state->usr.b = 0;
-        state->usr.classic.b = 0;
-        break;
-      case SDLK_q:
-        state->usr.nunchuk.c = 0;
-        state->usr.classic.x = 0;
-        break;
-      case SDLK_e:
-        state->usr.nunchuk.z = 0;
-        state->usr.classic.y = 0;
-        break;
-      case SDLK_1:
-        state->usr.one = 0;
-        break;
-      case SDLK_2:
-        state->usr.two = 0;
-        break;
-      case SDLK_3:
-        state->usr.minus = 0;
-        state->usr.classic.minus = 0;
-        break;
-      case SDLK_4:
-        state->usr.plus = 0;
-        state->usr.classic.plus = 0;
-        break;
-      case SDLK_h:
-        state->usr.home = 0;
-        break;
-      case SDLK_KP8:
-        state->usr.up = 0;
-        state->usr.classic.up = 0;
-        break;
-      case SDLK_KP2:
-        state->usr.down = 0;
-        state->usr.classic.down = 0;
-        break;
-      case SDLK_KP4:
-        state->usr.left = 0;
-        state->usr.classic.left = 0;
-        break;
-      case SDLK_KP6:
-        state->usr.right = 0;
-        state->usr.classic.right = 0;
-        break;
-  
-      case SDLK_UP:
-        up = 0;
-        break;
-      case SDLK_DOWN:
-        down = 0;
-        break;
-      case SDLK_LEFT:
-        left = 0;
-        break;
-      case SDLK_RIGHT:
-        right = 0;
-        break;
-
-      case SDLK_t:
-        steerleft = 0;
-        break;
-      case SDLK_y:
-        steerright = 0;
+      case NoExtension:
+        state->usr.ir_object[0].x = 400;
+        state->usr.ir_object[0].y = 400;
+        state->usr.ir_object[0].size = 8;
+        state->usr.ir_object[1].x = 600;
+        state->usr.ir_object[1].y = 400;
+        state->usr.ir_object[1].size = 8;
         break;
       default:
+        goto invalid;
+      }
+
+      state->usr.connected_extension_type = event.hotplug_event.extension;
+    invalid:
+      break;
+    case INPUT_EVENT_TYPE_BUTTON: {
+      bool pressed = event.button_event.pressed;
+      switch (event.button_event.button)
+      {
+      case INPUT_BUTTON_HOME:
+        state->usr.home = pressed;
+        break;
+
+      case INPUT_BUTTON_WIIMOTE_UP:
+        state->usr.up = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_DOWN:
+        state->usr.down = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_LEFT:
+        state->usr.left = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_RIGHT:
+        state->usr.right = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_A:
+        state->usr.a = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_B:
+        state->usr.b = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_1:
+        state->usr.one = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_2:
+        state->usr.two = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_PLUS:
+        state->usr.plus = pressed;
+        break;
+      case INPUT_BUTTON_WIIMOTE_MINUS:
+        state->usr.minus = pressed;
+        break;
+
+      case INPUT_BUTTON_NUNCHUK_C:
+        state->usr.nunchuk.c = pressed;
+        break;
+      case INPUT_BUTTON_NUNCHUK_Z:
+        state->usr.nunchuk.z = pressed;
+        break;
+
+      case INPUT_BUTTON_CLASSIC_UP:
+        state->usr.classic.up = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_DOWN:
+        state->usr.classic.down = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_LEFT:
+        state->usr.classic.left = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_RIGHT:
+        state->usr.classic.right = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_A:
+        state->usr.classic.a = pressed;
+      printf("classic A\n");
+        break;
+      case INPUT_BUTTON_CLASSIC_B:
+        state->usr.classic.b = pressed;
+      printf("classic B\n");
+        break;
+      case INPUT_BUTTON_CLASSIC_X:
+        state->usr.classic.x = pressed;
+      printf("classic X\n");
+        break;
+      case INPUT_BUTTON_CLASSIC_Y:
+        state->usr.classic.y = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_L:
+        state->usr.classic.ltrigger = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_R:
+        state->usr.classic.rtrigger = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_ZL:
+        state->usr.classic.lz = pressed;
+      printf("classic ZL\n");
+        break;
+      case INPUT_BUTTON_CLASSIC_ZR:
+        state->usr.classic.rz = pressed;
+      printf("classic ZR\n");
+        break;
+      case INPUT_BUTTON_CLASSIC_PLUS:
+        state->usr.classic.plus = pressed;
+        break;
+      case INPUT_BUTTON_CLASSIC_MINUS:
+        state->usr.classic.minus = pressed;
+        break;
+      default:
+        printf("warning: button %d not handled by input_update\n", event.button_event.button);
         break;
       }
+      break;
+    }
+    case INPUT_EVENT_TYPE_ANALOG_MOTION: {
+      bool moving = event.analog_motion_event.moving;
+      switch (event.analog_motion_event.motion)
+      {
+        case INPUT_ANALOG_MOTION_IR_UP:
+          ir_up = moving;
+          break;
+        case INPUT_ANALOG_MOTION_IR_DOWN:
+          ir_down = moving;
+          break;
+        case INPUT_ANALOG_MOTION_IR_LEFT:
+          ir_left = moving;
+          break;
+        case INPUT_ANALOG_MOTION_IR_RIGHT:
+          ir_right = moving;
+          break;
+
+        case INPUT_ANALOG_MOTION_STEER_LEFT:
+          steer_left = moving;
+          break;
+        case INPUT_ANALOG_MOTION_STEER_RIGHT:
+          steer_right = moving;
+          break;
+
+        case INPUT_ANALOG_MOTION_NUNCHUK_UP:
+          nunchuk_up = moving;
+          break;
+        case INPUT_ANALOG_MOTION_NUNCHUK_DOWN:
+          nunchuk_down = moving;
+          break;
+        case INPUT_ANALOG_MOTION_NUNCHUK_LEFT:
+          nunchuk_left = moving;
+          break;
+        case INPUT_ANALOG_MOTION_NUNCHUK_RIGHT:
+          nunchuk_right = moving;
+          break;
+
+        case INPUT_ANALOG_MOTION_CLASSIC_LEFT_STICK_UP:
+          classic_left_stick_up = moving;
+          break;
+        case INPUT_ANALOG_MOTION_CLASSIC_LEFT_STICK_DOWN:
+          classic_left_stick_down = moving;
+          break;
+        case INPUT_ANALOG_MOTION_CLASSIC_LEFT_STICK_LEFT:
+          classic_left_stick_left = moving;
+        printf("classic left %d\n", moving);
+          break;
+        case INPUT_ANALOG_MOTION_CLASSIC_LEFT_STICK_RIGHT:
+          classic_left_stick_right = moving;
+        printf("classic right\n");
+          break;
+
+        case INPUT_ANALOG_MOTION_MOTIONPLUS_UP:
+          motionplus_up = moving;
+          break;
+        case INPUT_ANALOG_MOTION_MOTIONPLUS_DOWN:
+          motionplus_down = moving;
+          break;
+        case INPUT_ANALOG_MOTION_MOTIONPLUS_LEFT:
+          motionplus_left = moving;
+          break;
+        case INPUT_ANALOG_MOTION_MOTIONPLUS_RIGHT:
+          motionplus_right = moving;
+          break;
+        case INPUT_ANALOG_MOTION_MOTIONPLUS_SLOW:
+          motionplus_slow = moving;
+          break;
+      }
+      break;
+    }
+    default:
+      break;
     }
   }
 
-  if ((steerleft && steerright) || (!steerleft && !steerright))
+  if ((steer_left && steer_right) || (!steer_left && !steer_right))
   {
-    steerang = (PI / 2);
+    steer_angle = (PI / 2);
   }
-  else if (steerleft)
+  else if (steer_left)
   {
-    steerang = (6 * PI / 8);
+    steer_angle = (6 * PI / 8);
   }
-  else if (steerright)
+  else if (steer_right)
   {
-    steerang = (2 * PI / 8);
+    steer_angle = (2 * PI / 8);
   }
 
   /*
 
-       if (steerleft)
+       if (steer_left)
        {
-       if (steerang < (7 * PI / 8))
-       steerang += 0.02;
-       state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
-       state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
+       if (steer_angle < (7 * PI / 8))
+       steer_angle += 0.02;
+       state->usr.accel_y = -cos(steer_angle) * (0x19 << 2) + 0x200;
+       state->usr.accel_x = -sin(steer_angle) * (0x19 << 2) + 0x200;
        }
 
-       if (steerright)
+       if (steer_right)
        {
-       if (steerang > (1 * PI / 8))
-       steerang -= 0.02;
-       state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
-       state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
+       if (steer_angle > (1 * PI / 8))
+       steer_angle -= 0.02;
+       state->usr.accel_y = -cos(steer_angle) * (0x19 << 2) + 0x200;
+       state->usr.accel_x = -sin(steer_angle) * (0x19 << 2) + 0x200;
        }
 
 */
 
-  //state->usr.accel_y = -cos(steerang) * (0x19 << 2) + 0x200;
-  //state->usr.accel_x = -sin(steerang) * (0x19 << 2) + 0x200;
+  //state->usr.accel_y = -cos(steer_angle) * (0x19 << 2) + 0x200;
+  //state->usr.accel_x = -sin(steer_angle) * (0x19 << 2) + 0x200;
 
-  switch (arrow_function)
+  if (ir_down)
   {
-  case 0:
-    if (down)
+    if (state->usr.ir_object[0].y < 764)
     {
-      if (state->usr.ir_object[0].y < 764)
-      {
-        state->usr.ir_object[0].y += 4;
-        state->usr.ir_object[1].y += 4;
-      }
+      state->usr.ir_object[0].y += 4;
+      state->usr.ir_object[1].y += 4;
     }
-
-    if (up)
-    {
-      if (state->usr.ir_object[0].x > 3)
-      {
-        state->usr.ir_object[0].y -= 4;
-        state->usr.ir_object[1].y -= 4;
-      }
-    }
-
-    if (left)
-    {
-      if (state->usr.ir_object[0].x < 1020)
-      {
-        state->usr.ir_object[0].x += 4;
-        state->usr.ir_object[1].x += 4;
-      }
-    }
-
-    if (right)
-    {
-      if (state->usr.ir_object[0].x > 3)
-      {
-        state->usr.ir_object[0].x -= 4;
-        state->usr.ir_object[1].x -= 4;
-      }
-    }
-    break;
-  case 1:
-    state->usr.nunchuk.x = 128 + right * 100 - left * 100;
-    state->usr.nunchuk.y = 128 + up * 100 - down * 100;
-    break;
-  case 2:
-    state->usr.classic.ls_x = 32 + right * 30 - left * 30;
-    state->usr.classic.ls_y = 32 + up * 30 - down * 30;
-    break;
-  case 3:
-    state->usr.motionplus.pitch_left = 0x1F7F + down * 800 * (1 + shift) - up * 800 * (1 + shift);
-    state->usr.motionplus.yaw_down = 0x1F7F + left * 800 * (1 + shift) - right * 800 * (1 + shift);
-    state->usr.motionplus.pitch_slow = !shift;
-    state->usr.motionplus.yaw_slow = !shift;
-    break;
   }
+  if (ir_up)
+  {
+    if (state->usr.ir_object[0].x > 3)
+    {
+      state->usr.ir_object[0].y -= 4;
+      state->usr.ir_object[1].y -= 4;
+    }
+  }
+  if (ir_left)
+  {
+    if (state->usr.ir_object[0].x < 1020)
+    {
+      state->usr.ir_object[0].x += 4;
+      state->usr.ir_object[1].x += 4;
+    }
+  }
+  if (ir_right)
+  {
+    if (state->usr.ir_object[0].x > 3)
+    {
+      state->usr.ir_object[0].x -= 4;
+      state->usr.ir_object[1].x -= 4;
+    }
+  }
+
+  state->usr.nunchuk.x = 128 + nunchuk_right * 100 - nunchuk_left * 100;
+  state->usr.nunchuk.y = 128 + nunchuk_up * 100 - nunchuk_down * 100;
+
+  state->usr.classic.ls_x = 32 + classic_left_stick_right * 30 - classic_left_stick_left * 30;
+  state->usr.classic.ls_y = 32 + classic_left_stick_up * 30 - classic_left_stick_down * 30;
+
+  state->usr.motionplus.pitch_left = 0x1F7F + motionplus_down * 800 * (1 + !motionplus_slow) - motionplus_up * 800 * (1 + !motionplus_slow);
+  state->usr.motionplus.yaw_down = 0x1F7F + motionplus_left * 800 * (1 + !motionplus_slow) - motionplus_right * 800 * (1 + !motionplus_slow);
+  state->usr.motionplus.pitch_slow = motionplus_slow;
+  state->usr.motionplus.yaw_slow = motionplus_slow;
 
   return 0;
 }
