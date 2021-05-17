@@ -239,7 +239,7 @@ void read_eeprom(struct wiimote_state * state, uint32_t offset, uint16_t size)
   if (offset + size > 0x16FF)
   {
     rpt = report_queue_push(state);
-    report_format_mem_resp(state, rpt, 0xf, 0x8, offset, NULL, false);
+    report_format_mem_resp(state, rpt, 0x10, 0x8, offset, NULL, false);
     fclose(file);
     return;
   }
@@ -300,7 +300,7 @@ void write_eeprom(struct wiimote_state * state, uint32_t offset, uint8_t size, c
   if (offset + size > 0x16FF)
   {
     rpt = report_queue_push(state);
-    report_format_mem_resp(state, rpt, 0xf, 0x8, offset, NULL, false);
+    report_format_mem_resp(state, rpt, 0x10, 0x8, offset, NULL, false);
     fclose(file);
     return;
   }
@@ -358,7 +358,7 @@ void read_register(struct wiimote_state *state, uint32_t offset, uint16_t size)
       if (state->sys.wmp_state == 1)
       {
          rpt = report_queue_push(state);
-         report_format_mem_resp(state, rpt, 0xf, 0x7, offset, NULL, false);
+         report_format_mem_resp(state, rpt, 0x10, 0x7, offset, NULL, false);
          return;
       }
       buffer = state->sys.register_a6 + (offset & 0xff);
