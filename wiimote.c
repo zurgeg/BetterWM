@@ -393,6 +393,7 @@ void read_register(struct wiimote_state *state, uint32_t offset, uint16_t size)
 void write_register(struct wiimote_state *state, uint32_t offset, uint8_t size, const uint8_t * buf)
 {
   uint8_t * reg;
+  int result = 0x00;
 
   switch ((offset >> 16) & 0xfe) //select register, ignore lsb
   {
@@ -442,6 +443,7 @@ void write_register(struct wiimote_state *state, uint32_t offset, uint8_t size, 
         if (buf[0] == 0xaa)
         {
           state->sys.extension_encrypted = 1;
+          result = 0x07;
         }
         else if (buf[0] == 0x55)
         {
@@ -552,8 +554,7 @@ void write_register(struct wiimote_state *state, uint32_t offset, uint8_t size, 
       break;
   }
 
-
-  report_queue_push_ack(state, 0x16, 0x00);
+  report_queue_push_ack(state, 0x16, result);
 }
 
 
@@ -562,7 +563,6 @@ void init_extension(struct wiimote_state * state)
   if (state->sys.connected_extension_type == NoExtension)
   {
     memset(state->sys.register_a4, 0xff, sizeof(state->sys.register_a4));
-    return;
   }
   else
   {
@@ -720,22 +720,47 @@ void init_extension(struct wiimote_state * state)
   }
   else
   {
-    state->sys.register_a6[0xfa] = 0x00;
+    //state->sys.register_a6[0xf7] = 0x0c;
+
+    state->sys.register_a6[0xf0] = 0x55;
+    state->sys.register_a6[0xf1] = 0xff;
+    state->sys.register_a6[0xf2] = 0xff;
+    state->sys.register_a6[0xf3] = 0xff;
+    state->sys.register_a6[0xf4] = 0xff;
+    state->sys.register_a6[0xf5] = 0xff;
+    state->sys.register_a6[0xf6] = 0xff;
+    state->sys.register_a6[0xf7] = 0x02;
+    state->sys.register_a6[0xf8] = 0xff;
+    state->sys.register_a6[0xf9] = 0xff;
+    state->sys.register_a6[0xfa] = 0x01;
     state->sys.register_a6[0xfb] = 0x00;
     state->sys.register_a6[0xfc] = 0xa6;
     state->sys.register_a6[0xfd] = 0x20;
-    //register_a6[0xfe] = 0x00; //leave this be
+    state->sys.register_a6[0xfe] = 0x00;
     state->sys.register_a6[0xff] = 0x05;
-
-    state->sys.register_a6[0xf7] = 0x0c;
-    state->sys.register_a6[0xf8] = 0xff;
-    state->sys.register_a6[0xf9] = 0xff;
-
-
-    state->sys.register_a4[0xfa] = 0x00;
+    
+  
+    state->sys.register_a4[0xf0] = 0x55;
+    state->sys.register_a4[0xf1] = 0xff;
+    state->sys.register_a4[0xf2] = 0xff;
+    state->sys.register_a4[0xf3] = 0xff;
+    state->sys.register_a4[0xf4] = 0xff;
+    state->sys.register_a4[0xf5] = 0xff;
+    state->sys.register_a4[0xf6] = 0xff;
+    state->sys.register_a4[0xf7] = 0x02;
+    state->sys.register_a4[0xf8] = 0xff;
+    state->sys.register_a4[0xf9] = 0xff;
+    state->sys.register_a4[0xfa] = 0x01;
     state->sys.register_a4[0xfb] = 0x00;
-    state->sys.register_a4[0xfc] = 0xa4;
+    state->sys.register_a4[0xfc] = 0xa6;
     state->sys.register_a4[0xfd] = 0x20;
+    state->sys.register_a4[0xfe] = 0x00;
+    state->sys.register_a4[0xff] = 0x05;
+    
+    if (state->sys.connected_extension_type == NoExtension)
+    {
+      return;
+    }
 
     switch (state->sys.connected_extension_type)
     {
