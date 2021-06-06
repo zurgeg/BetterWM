@@ -24,14 +24,18 @@
 #define PSM_CTRL 0x11
 #define PSM_INT 0x13
 
+bdaddr_t host_device_bdaddr;
+bdaddr_t wiimote_device_bdaddr;
 bdaddr_t host_bdaddr;
 bdaddr_t wiimote_bdaddr;
-int has_host = 0;
 
 int sdp_fd, ctrl_fd, int_fd;
 int wm_ctrl_fd, wm_int_fd;
 int sock_sdp_fd, sock_ctrl_fd, sock_int_fd;
 
+extern int show_reports;
+
+static int has_host = 0;
 static int is_connected = 0;
 
 //signal handler to break out of main loop
@@ -68,7 +72,7 @@ int create_socket()
   return fd;
 }
 
-int l2cap_connect(bdaddr_t bdaddr, int psm)
+int l2cap_connect(bdaddr_t device_bdaddr, bdaddr_t bdaddr, int psm)
 {
   int fd;
   struct sockaddr_l2 addr;
@@ -76,6 +80,17 @@ int l2cap_connect(bdaddr_t bdaddr, int psm)
   fd = create_socket();
   if (fd < 0)
   {
+    return -1;
+  }
+
+  memset(&addr, 0, sizeof(addr));
+  addr.l2_family = AF_BLUETOOTH;
+  addr.l2_psm    = htobs(psm);
+  addr.l2_bdaddr = device_bdaddr;
+
+  if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+  {
+    close(fd);
     return -1;
   }
 
@@ -93,7 +108,7 @@ int l2cap_connect(bdaddr_t bdaddr, int psm)
   return fd;
 }
 
-int l2cap_listen(int psm)
+int l2cap_listen(bdaddr_t device_bdaddr, int psm)
 {
   int fd;
   struct sockaddr_l2 addr;
@@ -107,7 +122,7 @@ int l2cap_listen(int psm)
   memset(&addr, 0, sizeof(addr));
   addr.l2_family = AF_BLUETOOTH;
   addr.l2_psm = htobs(psm);
-  addr.l2_bdaddr = *BDADDR_ANY;
+  addr.l2_bdaddr = device_bdaddr;
 
   if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
   {
@@ -127,7 +142,7 @@ int l2cap_listen(int psm)
 int listen_for_connections()
 {
 #ifdef SDP_SERVER
-  sock_sdp_fd = l2cap_listen(PSM_SDP);
+  sock_sdp_fd = l2cap_listen(host_device_bdaddr, PSM_SDP);
   if (sock_sdp_fd < 0)
   {
     printf("can't listen on psm %d: %s\n", PSM_SDP, strerror(errno));
@@ -135,14 +150,14 @@ int listen_for_connections()
   }
 #endif
 
-  sock_ctrl_fd = l2cap_listen(PSM_CTRL);
+  sock_ctrl_fd = l2cap_listen(host_device_bdaddr, PSM_CTRL);
   if (sock_ctrl_fd < 0)
   {
     printf("can't listen on psm %d: %s\n", PSM_CTRL, strerror(errno));
     return -1;
   }
 
-  sock_int_fd = l2cap_listen(PSM_INT);
+  sock_int_fd = l2cap_listen(host_device_bdaddr, PSM_INT);
   if (sock_int_fd < 0)
   {
     printf("can't listen on psm %d: %s\n", PSM_INT, strerror(errno));
@@ -174,14 +189,14 @@ int accept_connection(int socket_fd, bdaddr_t * bdaddr)
 
 int connect_to_host()
 {
-  ctrl_fd = l2cap_connect(host_bdaddr, PSM_CTRL);
+  ctrl_fd = l2cap_connect(host_device_bdaddr, host_bdaddr, PSM_CTRL);
   if (ctrl_fd < 0)
   {
     printf("can't connect to host psm %d: %s\n", PSM_CTRL, strerror(errno));
     return -1;
   }
 
-  int_fd = l2cap_connect(host_bdaddr, PSM_INT);
+  int_fd = l2cap_connect(host_device_bdaddr, host_bdaddr, PSM_INT);
   if (int_fd < 0)
   {
     printf("can't connect to host psm %d: %s\n", PSM_INT, strerror(errno));
@@ -193,14 +208,14 @@ int connect_to_host()
 
 int connect_to_wiimote()
 {
-  wm_ctrl_fd = l2cap_connect(wiimote_bdaddr, PSM_CTRL);
+  wm_ctrl_fd = l2cap_connect(wiimote_device_bdaddr, wiimote_bdaddr, PSM_CTRL);
   if (wm_ctrl_fd < 0)
   {
     printf("can't connect to wiimote psm %d: %s\n", PSM_CTRL, strerror(errno));
     return -1;
   }
 
-  wm_int_fd = l2cap_connect(wiimote_bdaddr, PSM_INT);
+  wm_int_fd = l2cap_connect(wiimote_device_bdaddr, wiimote_bdaddr, PSM_INT);
   if (wm_int_fd < 0)
   {
     printf("can't connect to wiimote psm %d: %s\n", PSM_INT, strerror(errno));
@@ -283,11 +298,25 @@ int main(int argc, char *argv[])
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);
   signal(SIGHUP, sig_handler);
-  
+
   if (set_up_device(NULL) < 0)
   {
     printf("failed to set up Bluetooth device\n");
     return 1;
+  }
+
+  if (get_device_bdaddr(0, &host_device_bdaddr) < 0)
+  {
+    printf("failed to get host Bluetooth adapter address\n");
+    restore_device();
+    return 1;
+  }
+
+  if (get_device_bdaddr(1, &wiimote_device_bdaddr) < 0)
+  {
+    printf("failed to get Wiimote Bluetooth adapter address\n");
+    printf("Warning: two Bluetooth adapters are required for proper functionality\n");
+    wiimote_device_bdaddr = host_device_bdaddr;
   }
 
 #ifndef SDP_SERVER
@@ -298,6 +327,8 @@ int main(int argc, char *argv[])
     return 1;
   }
 #endif
+
+  printf("connecting to wiimote... (press wiimote's sync button)\n");
 
   if (connect_to_wiimote() < 0)
   {
@@ -454,12 +485,17 @@ int main(int argc, char *argv[])
         out_buf_len = recv(int_fd, out_buf, 32, MSG_DONTWAIT);
         print_report(out_buf, out_buf_len);
       }
-      if (in_buf_len > 0 && (pfd[5].revents & POLLOUT))
+      if (pfd[5].revents & POLLOUT)
       {
-        send(int_fd, in_buf, in_buf_len, MSG_DONTWAIT);
-        in_buf_len = 0;
+        if (in_buf_len > 0)
+        {
+          send(int_fd, in_buf, in_buf_len, MSG_DONTWAIT);
+          in_buf_len = 0;
+        }
+
+        failure = 0;
       }
-      else if ((pfd[5].revents & POLLOUT) == 0)
+      else
       {
         if (++failure > 3)
         {
@@ -468,7 +504,7 @@ int main(int argc, char *argv[])
           is_connected = 0;
         }
 
-        usleep(200*1000);
+        usleep(20*1000*1000);
       }
     }
 

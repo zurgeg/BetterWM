@@ -531,9 +531,25 @@ int power_off_host(const bdaddr_t * host_bdaddr)
   free(cr);
 
   if (ret)
-  {    
+  {
     return ret;
   }
+
+  return 0;
+}
+
+int get_device_bdaddr(int device_id, bdaddr_t * bdaddr)
+{
+  int ret;
+  struct hci_dev_info di;
+
+  ret = hci_devinfo(device_id, &di);
+  if (ret < 0)
+  {
+    return ret;
+  }
+
+  *bdaddr = di.bdaddr;
 
   return 0;
 }
