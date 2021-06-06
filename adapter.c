@@ -20,6 +20,7 @@ static uint8_t original_class[3];
 static uint8_t original_scan_enable;
 static uint8_t original_iac[MAX_IAC_LAP][3];
 static uint8_t original_iac_num;
+static uint8_t original_simple_pairing_mode;
 
 static bdaddr_t wiimote_baddr;
 static const char * wiimote_name = "Nintendo RVL-CNT-01";
@@ -359,6 +360,41 @@ int restore_device_inquiry(int dd)
   return 0;
 }
 
+int set_up_simple_pairing_mode(int dd)
+{
+  int ret;
+
+  ret = hci_read_simple_pairing_mode(dd, &original_simple_pairing_mode, HCI_TIMEOUT);
+  if (ret < 0)
+  {
+    fprintf(stderr, "Can't read simple pairing mode: %s (%d)\n", strerror(errno), errno);
+    return -1;
+  }
+
+  ret = hci_write_simple_pairing_mode(dd, 0, HCI_TIMEOUT);
+  if (ret < 0)
+  {
+    fprintf(stderr, "Can't write simple pairing mode: %s (%d)\n", strerror(errno), errno);
+    return -1;
+  }
+
+  return 0;
+}
+
+int restore_simple_pairing_mode(int dd)
+{
+  int ret;
+
+  ret = hci_write_simple_pairing_mode(dd, original_simple_pairing_mode, HCI_TIMEOUT);
+  if (ret < 0)
+  {
+    fprintf(stderr, "Can't restore simple pairing mode: %s (%d)\n", strerror(errno), errno);
+    return -1;
+  }
+
+  return 0;
+}
+
 int set_up_device(char * dev_str)
 {
   int device_id = 0, dd, ret;
@@ -402,6 +438,13 @@ int set_up_device(char * dev_str)
     return -1;
   }
   
+  ret = set_up_simple_pairing_mode(dd);
+  if (ret < 0)
+  {
+    printf("Failed to set simple pairing mode\n");
+    printf("Warning: make sure secure simple pairing mode is disabled\n");
+  }
+
   hci_close_dev(dd);
   return 0;
 }
@@ -447,7 +490,15 @@ int restore_device()
     hci_close_dev(dd);
     return -1;
   }
-  
+
+  ret = restore_simple_pairing_mode(dd);
+  if (ret < 0)
+  {
+    printf("Failed to restore simple pairing mode\n");
+    hci_close_dev(dd);
+    return -1;
+  }
+
   hci_close_dev(dd);
   return 0;
 }
