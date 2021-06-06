@@ -428,8 +428,10 @@ int main(int argc, char *argv[])
       if (pfd[5].revents & POLLOUT)
       {
         len = generate_report(&state, buf);
-        send(int_fd, buf, len, MSG_DONTWAIT);
-        // send_report_now = 0;
+        if (len > 0)
+        {
+          send(int_fd, buf, len, MSG_DONTWAIT);
+        }
 
         failure = 0;
       }
