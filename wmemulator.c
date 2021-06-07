@@ -20,6 +20,7 @@
 #include "input_sdl.h"
 #include "input_socket.h"
 #include "adapter.h"
+#include "wm_print.h"
 
 #define PSM_SDP 1
 #define PSM_CTRL 0x11
@@ -409,6 +410,7 @@ int main(int argc, char *argv[])
       len = recv(int_fd, buf, 32, MSG_DONTWAIT);
       if (len > 0)
       {
+        print_report(buf, len);
         process_report(&state, buf, len);
       }
     }
@@ -430,6 +432,7 @@ int main(int argc, char *argv[])
         len = generate_report(&state, buf);
         if (len > 0)
         {
+          print_report(buf, len);
           send(int_fd, buf, len, MSG_DONTWAIT);
         }
 

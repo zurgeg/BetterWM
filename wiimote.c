@@ -1,7 +1,6 @@
 #include "wiimote.h"
 
 #include "wm_reports.h"
-#include "wm_print.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -18,8 +17,6 @@ static uint8_t classic_calibration[16] =
 int process_report(struct wiimote_state *state, const uint8_t * buf, int len)
 {
   struct report_data * data = (struct report_data *)buf;
-
-  print_report(buf, len);
 
   //every output report contains rumble info
   state->sys.rumble = data->buf[0] & 0x01;
@@ -211,7 +208,6 @@ int generate_report(struct wiimote_state * state, uint8_t * buf)
       break;
   }
 
-  print_report(buf, len);
   return len;
 }
 
