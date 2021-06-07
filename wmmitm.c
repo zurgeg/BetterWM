@@ -15,8 +15,6 @@
 #include <pthread.h>
 
 #include "sdp.h"
-#include "wiimote.h"
-#include "input.h"
 #include "adapter.h"
 #include "wm_print.h"
 
