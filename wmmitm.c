@@ -286,11 +286,6 @@ int main(int argc, char *argv[])
       has_host = 1;
     }
   }
-  else
-  {
-    printf("usage: %s <wiimote-bdaddr> <wii-bdaddr>\n", *argv);
-    return 1;
-  }
 
   //set up unload signals
   signal(SIGINT, sig_handler);
@@ -328,6 +323,18 @@ int main(int argc, char *argv[])
 
   printf("connecting to wiimote... (press wiimote's sync button)\n");
 
+  while (!bacmp(&wiimote_bdaddr, BDADDR_ANY))
+  {
+    if (failure++ > 3)
+    {
+      printf("couldn't find a wiimote to connect to\n");
+      restore_device();
+      return 1;
+    }
+
+    find_wiimote(&wiimote_bdaddr);
+  }
+
   if (connect_to_wiimote() < 0)
   {
     printf("failed to connect to wiimote\n");
@@ -340,14 +347,14 @@ int main(int argc, char *argv[])
     printf("connecting to host...\n");
     if (connect_to_host() < 0)
     {
-      printf("couldn't connect\n");
+      printf("couldn't connect to host\n");
       running = 0;
     }
     else
     {
       char straddr[18];
       ba2str(&host_bdaddr, straddr);
-      printf("connected to %s\n", straddr);
+      printf("connected to host %s\n", straddr);
 
       is_connected = 1;
     }
@@ -361,7 +368,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-      printf("listening for connections... (press wii's sync button)\n");
+      printf("listening for host connections... (press wii's sync button)\n");
     }
   }
 

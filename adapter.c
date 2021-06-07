@@ -23,7 +23,7 @@ static uint8_t original_iac_num;
 static uint8_t original_simple_pairing_mode;
 
 static bdaddr_t wiimote_baddr;
-static const char * wiimote_name = "Nintendo RVL-CNT-01";
+static const char wiimote_name[] = "Nintendo RVL-CNT-01";
 static const uint32_t wiimote_class = 0x002504;
 static const uint8_t wiimote_iac[3] = { 0x00, 0x8B, 0x9E };
 
@@ -538,7 +538,7 @@ int power_off_host(const bdaddr_t * host_bdaddr)
   return 0;
 }
 
-int get_device_bdaddr(int device_id, bdaddr_t * bdaddr)
+int get_device_bdaddr(int device_id, bdaddr_t * out_bdaddr)
 {
   int ret;
   struct hci_dev_info di;
@@ -549,7 +549,52 @@ int get_device_bdaddr(int device_id, bdaddr_t * bdaddr)
     return ret;
   }
 
-  *bdaddr = di.bdaddr;
+  bacpy(out_bdaddr, &di.bdaddr);
+
+  return 0;
+}
+
+int find_wiimote(bdaddr_t * out_bdaddr)
+{
+  int device_id = 0, dd;
+  int max_rsp, num_rsp;
+  inquiry_info *ii = NULL;
+  int i, len, flags;
+  char name[248] = { 0 };
+
+  dd = hci_open_dev(device_id);
+  if (dd < 0)
+  {
+    fprintf(stderr, "Can't open device hci%d: %s (%d)\n",
+      device_id, strerror(errno), errno);
+    return -1;
+  }
+
+  len  = 8;
+  max_rsp = 8;
+  flags = IREQ_CACHE_FLUSH;
+  ii = (inquiry_info*)malloc(max_rsp * sizeof(inquiry_info));
+
+  num_rsp = hci_inquiry(device_id, len, max_rsp, (uint8_t *)wiimote_iac, &ii, flags);
+  if (num_rsp < 0)
+  {
+    fprintf(stderr, "HCI inquiry failed\n");
+    return -1;
+  }
+
+  for (i = 0; i < num_rsp; i++)
+  {
+    hci_read_remote_name(dd, &(ii+i)->bdaddr, sizeof(name), name, 0);
+
+    if (!strncmp(name, wiimote_name, sizeof(wiimote_name) - 1))
+    {
+      bacpy(out_bdaddr, &(ii+i)->bdaddr);
+      break;
+    }
+  }
+
+  free(ii);
+  hci_close_dev(dd);
 
   return 0;
 }
