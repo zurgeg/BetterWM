@@ -235,6 +235,8 @@ void read_eeprom(struct wiimote_state * state, uint32_t offset, uint16_t size)
     return;
   }
 
+  offset = offset & 0xFFFF;
+
   //addresses greater than 0x16FF cannot be read or written
   if (offset + size > 0x16FF)
   {
@@ -244,19 +246,15 @@ void read_eeprom(struct wiimote_state * state, uint32_t offset, uint16_t size)
     return;
   }
 
-  //start reading at the memory offset (0x70 is the physical address at 0x00 virtual)
-  fseek(file, offset + 0x70, SEEK_SET);
+  fseek(file, offset, SEEK_SET);
 
-  //allocate memory for the buffer
   buffer = (uint8_t *)malloc(size);
   if (!buffer)
   {
-    printf("Couldn't allocate eeprom reading buffer");
     fclose(file);
     return;
   }
 
-  //read memory into buffer
   fread(buffer, 1, size, file);
   fclose(file);
 
@@ -288,13 +286,14 @@ void write_eeprom(struct wiimote_state * state, uint32_t offset, uint8_t size, c
   FILE * file;
   struct report * rpt;
 
-  //Open file
   file = fopen("eeprom.bin", "rb");
   if (!file)
   {
     printf("Unable to open eeprom file");
     return;
   }
+
+  offset = offset & 0xFFFF;
 
   //addresses greater than 0x16FF cannot be read or written
   if (offset + size > 0x16FF)
@@ -305,8 +304,7 @@ void write_eeprom(struct wiimote_state * state, uint32_t offset, uint8_t size, c
     return;
   }
 
-  //start reading at the memory offset (0x70 is the physical address at 0x00 virtual)
-  fseek(file, offset + 0x70, SEEK_SET);
+  fseek(file, offset, SEEK_SET);
 
   //write buffer into the eeprom file
   fwrite(buf, 1, size, file);
