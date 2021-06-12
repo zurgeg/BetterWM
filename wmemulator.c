@@ -227,14 +227,20 @@ int main(int argc, char *argv[])
 
   if (argc > 1)
   {
-    if (bachk(argv[1]) < 0)
+    if (strcmp(argv[1], "pair") == 0)
     {
-      print_usage(*argv);
-      return 1;
+      // Act as if nothing given.
     }
-
-    str2ba(argv[1], &host_bdaddr);
-    has_host = 1;
+    else if (bachk(argv[1]) >= 0)
+    {
+      str2ba(argv[1], &host_bdaddr);
+      has_host = 1;
+    }
+    else
+    {
+        print_usage(*argv);
+        return 1;
+    }
   }
   if (argc <= 2 || strcmp(argv[2], "gui") == 0)
   {
