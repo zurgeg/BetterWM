@@ -1,4 +1,6 @@
-# Wiimote Emulator
+# BetterWM
+
+# Fork of WiimoteEmulator with a better UI/UX
 
 Emulates a Bluetooth Wii controller in software.
 
